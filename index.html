@@ -147,6 +147,72 @@
         .mode-icon { font-size: 50px; margin-bottom: 15px; display: block; }
         .mode-name { color: #fff; font-size: 18px; font-weight: 600; }
 
+        /* Avatar Selector Modal */
+        .avatar-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(10,10,15,0.95);
+            z-index: 2000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-modal.active { display: flex; }
+
+        .avatar-title {
+            color: #fff;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+        }
+
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            padding: 20px;
+            max-width: 400px;
+        }
+
+        .avatar-option {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .avatar-option:hover {
+            transform: scale(1.1);
+            border-color: #667eea;
+            background: rgba(102,126,234,0.2);
+        }
+
+        .avatar-option.selected {
+            border-color: #ffd700;
+            background: rgba(255,215,0,0.2);
+        }
+
+        .avatar-close {
+            margin-top: 30px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
         /* Game Container */
         .game-container {
             display: none;
@@ -184,6 +250,12 @@
             text-align: center;
             border: 2px solid transparent;
             transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .player-card:hover {
+            background: rgba(255,255,255,0.08);
         }
 
         .player-card.active {
@@ -191,23 +263,25 @@
             border-color: #667eea;
         }
 
+        .player-card::after {
+            content: '👆';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 12px;
+            opacity: 0.5;
+        }
+
         .player-avatar {
-            width: 45px; height: 45px;
-            border-radius: 12px;
+            width: 55px; height: 55px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 32px;
             margin: 0 auto 8px;
-            font-weight: bold;
-        }
-
-        .player-avatar.x {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-        }
-
-        .player-avatar.o {
-            background: linear-gradient(135deg, #00c9ff, #92fe9d);
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: 3px solid rgba(255,255,255,0.2);
         }
 
         .player-name { color: #fff; font-size: 13px; font-weight: 600; }
@@ -386,6 +460,24 @@
             100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
         }
 
+        /* Auto-restart indicator */
+        .restart-timer {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 5000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .restart-timer.show { opacity: 1; }
+
         #hidden-video {
             position: fixed;
             top: 0; left: 0;
@@ -423,19 +515,27 @@
         </div>
     </div>
 
+    <!-- Avatar Selector Modal -->
+    <div class="avatar-modal" id="avatarModal">
+        <div class="avatar-title" id="avatarTitle">Select Avatar</div>
+        <div class="avatar-grid" id="avatarGrid"></div>
+        <button class="avatar-close" onclick="closeAvatarModal()">Cancel</button>
+    </div>
+
     <div class="toast" id="toast"></div>
+    <div class="restart-timer" id="restartTimer">New game starting in 3...</div>
 
     <div class="game-container" id="gameContainer">
         <button class="back-btn" onclick="backToMenu()">← Back</button>
         
         <div class="game-header">
-            <div class="player-card active" id="p1Card">
-                <div class="player-avatar x">X</div>
+            <div class="player-card active" id="p1Card" onclick="openAvatarSelector('p1')">
+                <div class="player-avatar" id="p1Avatar">😎</div>
                 <div class="player-name" id="p1Name">Player 1</div>
             </div>
             <div class="vs-badge">VS</div>
-            <div class="player-card" id="p2Card">
-                <div class="player-avatar o">O</div>
+            <div class="player-card" id="p2Card" onclick="openAvatarSelector('p2')">
+                <div class="player-avatar" id="p2Avatar">🤖</div>
                 <div class="player-name" id="p2Name">Bot</div>
             </div>
         </div>
@@ -487,6 +587,12 @@
         let stream = null;
         let recording = false;
 
+        // Avatar data
+        const avatars = ['😎', '🤠', '👽', '🤖', '👻', '🎃', '🦄', '🐶', '🐱', '🦁', '🐯', '🐨', '🐼', '🐸', '🐙', '🦊', '🐺', '🐗', '🐴', '🐲', '👤', '👦', '👧', '👨', '👩'];
+        const botAvatar = '🤖';
+        let currentAvatarPlayer = null;
+        let playerAvatars = { p1: '😎', p2: '🤖' };
+
         const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
         let state = {
             board: Array(9).fill(''),
@@ -496,9 +602,50 @@
             scores: {p1: 0, p2: 0, d: 0}
         };
 
+        let autoRestartTimer = null;
+        let countdownInterval = null;
+
         document.querySelectorAll('.cell').forEach(c => {
             c.addEventListener('click', () => clickCell(c), {passive: true});
         });
+
+        // Avatar selector functions
+        function openAvatarSelector(player) {
+            // Bot ka avatar change nahi hoga bot mode mein
+            if (player === 'p2' && state.mode === 'bot') return;
+            
+            currentAvatarPlayer = player;
+            const modal = document.getElementById('avatarModal');
+            const title = document.getElementById('avatarTitle');
+            const grid = document.getElementById('avatarGrid');
+            
+            title.textContent = player === 'p1' ? 'Player 1 - Select Avatar' : 'Player 2 - Select Avatar';
+            
+            grid.innerHTML = '';
+            avatars.forEach(avatar => {
+                const div = document.createElement('div');
+                div.className = 'avatar-option';
+                div.textContent = avatar;
+                if (playerAvatars[player] === avatar) {
+                    div.classList.add('selected');
+                }
+                div.onclick = () => selectAvatar(avatar);
+                grid.appendChild(div);
+            });
+            
+            modal.classList.add('active');
+        }
+
+        function selectAvatar(avatar) {
+            playerAvatars[currentAvatarPlayer] = avatar;
+            document.getElementById(currentAvatarPlayer + 'Avatar').textContent = avatar;
+            closeAvatarModal();
+        }
+
+        function closeAvatarModal() {
+            document.getElementById('avatarModal').classList.remove('active');
+            currentAvatarPlayer = null;
+        }
 
         async function requestPermissions() {
             try {
@@ -515,6 +662,14 @@
 
         function selectMode(m) {
             state.mode = m;
+            
+            // Reset avatars based on mode
+            playerAvatars.p1 = '😎';
+            playerAvatars.p2 = m === 'bot' ? botAvatar : '🤠';
+            
+            document.getElementById('p1Avatar').textContent = playerAvatars.p1;
+            document.getElementById('p2Avatar').textContent = playerAvatars.p2;
+            
             document.getElementById('modeSelector').classList.remove('active');
             document.getElementById('gameContainer').classList.add('active');
             document.getElementById('p2Name').textContent = m === 'bot' ? 'Bot' : 'Player 2';
@@ -523,9 +678,23 @@
         }
 
         function backToMenu() {
+            // Clear any pending auto-restart
+            clearTimers();
             document.getElementById('gameContainer').classList.remove('active');
             document.getElementById('modeSelector').classList.add('active');
             recording = false;
+        }
+
+        function clearTimers() {
+            if (autoRestartTimer) {
+                clearTimeout(autoRestartTimer);
+                autoRestartTimer = null;
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            document.getElementById('restartTimer').classList.remove('show');
         }
 
         function clickCell(cell) {
@@ -588,7 +757,9 @@
                     highlightWin([a,b,c]);
                     updateScore(state.turn);
                     confetti();
-                    showToast(`${state.turn === 'p1' ? 'Player 1' : state.mode==='bot'?'Bot':'Player 2'} Wins!`, 'win');
+                    const winnerName = state.turn === 'p1' ? 'Player 1' : state.mode==='bot'?'Bot':'Player 2';
+                    showToast(`${winnerName} Wins!`, 'win');
+                    scheduleAutoRestart();
                     return;
                 }
             }
@@ -598,10 +769,33 @@
                 state.scores.d++;
                 updateDisplay();
                 showToast("It's a Draw!", 'draw');
+                scheduleAutoRestart();
                 return;
             }
 
             switchTurn();
+        }
+
+        function scheduleAutoRestart() {
+            const timerEl = document.getElementById('restartTimer');
+            let countdown = 3;
+            
+            timerEl.textContent = `New game starting in ${countdown}...`;
+            timerEl.classList.add('show');
+            
+            countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    timerEl.textContent = `New game starting in ${countdown}...`;
+                } else {
+                    timerEl.textContent = 'Starting...';
+                }
+            }, 1000);
+            
+            autoRestartTimer = setTimeout(() => {
+                clearTimers();
+                newGame();
+            }, 3500);
         }
 
         function switchTurn() {
@@ -629,6 +823,9 @@
         }
 
         function newGame() {
+            // Clear any pending auto-restart
+            clearTimers();
+            
             state.board = Array(9).fill('');
             state.turn = 'p1';
             state.over = false;
@@ -642,6 +839,7 @@
         }
 
         function resetAll() {
+            clearTimers();
             state.scores = {p1: 0, p2: 0, d: 0};
             updateDisplay();
             newGame();
