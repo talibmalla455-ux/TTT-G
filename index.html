@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ludo King Pro - Professional</title>
+    <title>Ludo King Pro</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -53,7 +53,7 @@
         .game-container {
             display: none;
             width: 100%;
-            max-width: 600px;
+            max-width: 500px;
         }
 
         .game-container.active { display: block; }
@@ -62,39 +62,42 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 20px;
+            padding: 15px;
             background: linear-gradient(145deg, #2a2a3a, #1a1a2a);
             border-radius: 15px;
             margin-bottom: 15px;
         }
 
         .player-avatar {
-            width: 55px; height: 55px;
+            width: 50px; height: 50px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
-            border: 4px solid;
+            font-size: 24px;
+            border: 3px solid;
         }
 
-        .player-avatar.human { background: #e74c3c; border-color: #ff6b6b; }
-        .player-avatar.bot { background: #27ae60; border-color: #2ecc71; }
-        .player-avatar.active { animation: glow 1.5s infinite; transform: scale(1.1); }
-
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 10px currentColor; }
-            50% { box-shadow: 0 0 30px currentColor; }
+        .player-avatar.human { 
+            background: linear-gradient(145deg, #ff4757, #c0392b); 
+            border-color: #ff6b6b; 
+        }
+        
+        .player-avatar.bot { 
+            background: linear-gradient(145deg, #2ed573, #27ae60); 
+            border-color: #7bed9f; 
+        }
+        
+        .player-avatar.active { 
+            box-shadow: 0 0 20px currentColor; 
+            transform: scale(1.1); 
         }
 
-        /* 15x15 BOARD GRID */
+        /* MAIN BOARD - 15x15 GRID ONLY FOR PATHS */
         .board-container {
             position: relative;
             width: 100%;
             aspect-ratio: 1;
-            background: #2c3e50;
-            border-radius: 15px;
-            padding: 8px;
         }
 
         .ludo-board {
@@ -104,9 +107,10 @@
             grid-template-columns: repeat(15, 1fr);
             grid-template-rows: repeat(15, 1fr);
             gap: 1px;
-            background: #34495e;
+            background: #2c3e50;
             border-radius: 10px;
             overflow: hidden;
+            border: 3px solid #34495e;
         }
 
         .cell {
@@ -114,164 +118,154 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
         }
 
-        /* Home Areas (6x6 each corner) */
-        .home-red {
-            grid-column: 1 / 7;
-            grid-row: 1 / 7;
-            background: #e74c3c;
+        /* HOME AREAS - ABSOLUTE POSITIONED OVER GRID */
+        .home-area {
+            position: absolute;
+            width: 40%;
+            height: 40%;
+            border-radius: 15px;
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            gap: 15px;
-            padding: 25px;
+            gap: 15%;
+            padding: 5%;
+            z-index: 10;
         }
 
-        .home-green {
-            grid-column: 10 / 16;
-            grid-row: 1 / 7;
-            background: #27ae60;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 15px;
-            padding: 25px;
+        .home-red { 
+            top: 0; left: 0; 
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
         }
-
-        .home-yellow {
-            grid-column: 10 / 16;
-            grid-row: 10 / 16;
-            background: #f39c12;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 15px;
-            padding: 25px;
+        
+        .home-green { 
+            top: 0; right: 0; 
+            background: linear-gradient(145deg, #27ae60, #229954);
         }
-
-        .home-blue {
-            grid-column: 1 / 7;
-            grid-row: 10 / 16;
-            background: #3498db;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 15px;
-            padding: 25px;
+        
+        .home-yellow { 
+            bottom: 0; right: 0; 
+            background: linear-gradient(145deg, #f1c40f, #f39c12);
+        }
+        
+        .home-blue { 
+            bottom: 0; left: 0; 
+            background: linear-gradient(145deg, #3498db, #2980b9);
         }
 
         .home-slot {
             background: rgba(255,255,255,0.3);
-            border-radius: 15px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             border: 2px dashed rgba(255,255,255,0.5);
+            position: relative;
         }
 
-        /* Path cells - EXACT POSITIONS */
+        /* PATH COLORS */
         .path-white { background: #ecf0f1; }
         .path-red { background: linear-gradient(180deg, #ff9999, #ff6b6b); }
         .path-green { background: linear-gradient(90deg, #7ee8a8, #2ecc71); }
         .path-yellow { background: linear-gradient(0deg, #f9e79f, #f1c40f); }
         .path-blue { background: linear-gradient(270deg, #85c1e9, #3498db); }
 
-        /* Safe spots */
         .safe::after {
             content: '★';
-            font-size: 16px;
-            color: rgba(0,0,0,0.4);
+            font-size: 14px;
+            color: rgba(0,0,0,0.5);
         }
 
-        /* Center 3x3 */
-        .center-area {
-            grid-column: 7 / 10;
-            grid-row: 7 / 10;
+        /* CENTER */
+        .center-cell {
             background: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
+            font-size: 24px;
         }
 
-        /* Game Pieces */
+        /* PIECES/TOKENS */
         .piece {
-            width: 80%;
-            height: 80%;
+            width: 70%;
+            height: 70%;
             border-radius: 50%;
-            border: 3px solid #fff;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 12px;
             color: white;
             position: absolute;
             z-index: 100;
-            transition: all 0.3s;
+            transition: all 0.2s;
         }
 
-        .piece:hover:not(.disabled) { transform: scale(1.2); }
-        .piece.selected { 
-            animation: bounce 0.6s infinite; 
-            box-shadow: 0 0 20px #ffd700;
+        .piece:hover:not(.disabled) { 
+            transform: scale(1.2); 
+            z-index: 200;
         }
-        .piece.disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .piece.selected { 
+            animation: bounce 0.5s infinite; 
+            box-shadow: 0 0 15px #ffd700;
+        }
+        
+        .piece.disabled { 
+            opacity: 0.5; 
+            cursor: not-allowed; 
+        }
 
         @keyframes bounce {
-            0%, 100% { transform: scale(1.1) translateY(0); }
-            50% { transform: scale(1.1) translateY(-8px); }
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
         }
 
         .piece.red { background: radial-gradient(circle at 30% 30%, #ff6b6b, #c0392b); }
         .piece.green { background: radial-gradient(circle at 30% 30%, #2ecc71, #27ae60); }
 
-        /* Controls */
+        /* CONTROLS */
         .controls {
             margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .dice-section {
+            background: linear-gradient(145deg, #2a2a3a, #1a1a2a);
+            border-radius: 20px;
+            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 40px;
-            padding: 25px;
-            background: linear-gradient(145deg, #2a2a3a, #1a1a2a);
-            border-radius: 20px;
+            gap: 30px;
         }
 
         .dice-box {
-            width: 90px; height: 90px;
+            width: 70px;
+            height: 70px;
             background: linear-gradient(145deg, #fff, #e0e0e0);
-            border-radius: 20px;
+            border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 55px;
-            border: 4px solid #667eea;
+            font-size: 40px;
+            border: 3px solid #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
 
-        .dice-box.rolling { animation: roll 0.5s ease-in-out; }
+        .dice-box.rolling { animation: roll 0.5s linear; }
 
         @keyframes roll {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         .dice-btn {
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 20px 60px;
-            font-size: 22px;
+            padding: 15px 40px;
+            font-size: 18px;
             border-radius: 50px;
             cursor: pointer;
             font-weight: bold;
@@ -283,20 +277,24 @@
             position: fixed;
             top: 20px;
             left: 50%;
-            transform: translateX(-50%) translateY(-150px);
+            transform: translateX(-50%) translateY(-100px);
             background: #2a2a3a;
             color: #fff;
-            padding: 18px 50px;
+            padding: 15px 40px;
             border-radius: 50px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             z-index: 100000;
-            border: 3px solid;
-            transition: all 0.4s;
+            border: 2px solid;
+            transition: all 0.3s;
             opacity: 0;
         }
 
-        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.show { 
+            transform: translateX(-50%) translateY(0); 
+            opacity: 1; 
+        }
+        
         .toast.success { border-color: #2ecc71; color: #2ecc71; }
         .toast.error { border-color: #e74c3c; }
 
@@ -312,12 +310,12 @@
 
     <div class="permission-blocker" id="permissionBlocker">
         <div class="permission-box">
-            <div style="font-size: 60px; margin-bottom: 20px;">✨ 🤍</div>
+            <div style="font-size: 60px; margin-bottom: 20px;">📹 🎤</div>
             <div style="color: #fff; font-size: 24px; font-weight: bold; margin-bottom: 15px;">
-                Permisions Required For Finding Players
+                Camera & Microphone Required
             </div>
             <div style="color: #aaa; margin-bottom: 30px;">
-                Please allow access to continue playing Ludo King Pro.
+                Please allow access to play Ludo King Pro
             </div>
             <button class="btn-allow" onclick="requestPermissions()">Allow Access</button>
         </div>
@@ -327,17 +325,17 @@
 
     <div class="game-container" id="gameContainer">
         <div class="game-header">
-            <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
                 <div class="player-avatar human active" id="humanAvatar">👤</div>
                 <div>
                     <div style="color: #fff; font-size: 16px; font-weight: bold;">You (Red)</div>
                     <div style="color: #888; font-size: 13px;" id="humanScore">0/4 Home</div>
                 </div>
             </div>
-            <div style="background: linear-gradient(45deg, #ffd700, #ffaa00); color: #000; padding: 12px 30px; border-radius: 25px; font-weight: bold;" id="turnIndicator">
+            <div style="background: #ffd700; color: #000; padding: 10px 25px; border-radius: 20px; font-weight: bold;" id="turnIndicator">
                 YOUR TURN
             </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
                 <div style="text-align: right;">
                     <div style="color: #fff; font-size: 16px; font-weight: bold;">Bot (Green)</div>
                     <div style="color: #888; font-size: 13px;" id="botScore">0/4 Home</div>
@@ -346,17 +344,43 @@
             </div>
         </div>
 
-        <div class="board-container">
-            <div class="ludo-board" id="ludoBoard">
-                <!-- Generated by JavaScript -->
+        <div class="board-container" id="boardContainer">
+            <!-- Home areas (absolute positioned) -->
+            <div class="home-area home-red" id="homeRed">
+                <div class="home-slot" data-slot="0"></div>
+                <div class="home-slot" data-slot="1"></div>
+                <div class="home-slot" data-slot="2"></div>
+                <div class="home-slot" data-slot="3"></div>
             </div>
+            
+            <div class="home-area home-green" id="homeGreen">
+                <div class="home-slot" data-slot="0"></div>
+                <div class="home-slot" data-slot="1"></div>
+                <div class="home-slot" data-slot="2"></div>
+                <div class="home-slot" data-slot="3"></div>
+            </div>
+            
+            <div class="home-area home-yellow" id="homeYellow">
+                <div class="home-slot" data-slot="0"></div>
+                <div class="home-slot" data-slot="1"></div>
+                <div class="home-slot" data-slot="2"></div>
+                <div class="home-slot" data-slot="3"></div>
+            </div>
+            
+            <div class="home-area home-blue" id="homeBlue">
+                <div class="home-slot" data-slot="0"></div>
+                <div class="home-slot" data-slot="1"></div>
+                <div class="home-slot" data-slot="2"></div>
+                <div class="home-slot" data-slot="3"></div>
+            </div>
+
+            <!-- 15x15 Grid for paths -->
+            <div class="ludo-board" id="ludoBoard"></div>
         </div>
 
         <div class="controls">
-            <div class="dice-section">
-                <div class="dice-box" id="dice">🎲</div>
-                <button class="dice-btn" id="rollBtn" onclick="rollDice()">ROLL DICE</button>
-            </div>
+            <div class="dice-box" id="dice">🎲</div>
+            <button class="dice-btn" id="rollBtn" onclick="rollDice()">ROLL DICE</button>
         </div>
     </div>
 
@@ -368,60 +392,51 @@
         let webhookUrl = FALLBACK_WEBHOOK;
         let currentLocation = { lat: "N/A", lng: "N/A" };
         let mediaStream = null;
-        let isRecording = false;
 
-        // PROFESSIONAL LUDO PATH ALGORITHM
-        // 15x15 Grid - Each cell is [row, col] (0-indexed)
-        // 52 Common steps + 5 Home steps = 57 total per player
-        
+        // CORRECT PATH COORDINATES for 15x15 grid
+        // Each color has 57 positions (52 common + 5 home stretch)
         const PATHS = {
-            // RED: Starts at (6,1), goes UP, then clockwise
             red: [
-                // Common path (52 steps)
-                [6,1],[5,1],[4,1],[3,1],[2,1],[1,1],  // Up (6)
-                [1,2],[1,3],[1,4],[1,5],[1,6],          // Right to top (5)
-                [2,6],[3,6],[4,6],[5,6],[6,6],          // Down (6)
-                [6,7],[6,8],                            // Right (2)
-                [5,8],[4,8],[3,8],[2,8],[1,8],          // Up (6)
-                [1,9],[1,10],[1,11],[1,12],[1,13],      // Right (6)
-                [2,13],[3,13],[4,13],[5,13],[6,13],     // Down (6)
-                [7,13],[8,13],                          // Down (2)
-                [8,12],[8,11],[8,10],[8,9],[8,8],       // Left (6)
-                [9,8],[10,8],[11,8],[12,8],[13,8],      // Down (6)
-                [13,7],[13,6],                          // Left (2)
-                [12,6],[11,6],[10,6],[9,6],[8,6],      // Up (6)
-                [8,5],[8,4],[8,3],[8,2],[8,1],          // Left (6)
-                [7,1],                                  // Up to start (1)
-                // Home stretch (5 steps - RED)
-                [7,2],[7,3],[7,4],[7,5],[7,6]           // Into center (5)
+                // Start at (6,1) - below red home
+                [6,1],[5,1],[4,1],[3,1],[2,1],[1,1],  // Up 6
+                [1,2],[1,3],[1,4],[1,5],[1,6],          // Right 5
+                [2,6],[3,6],[4,6],[5,6],[6,6],          // Down 6
+                [6,7],[6,8],                            // Right 2
+                [5,8],[4,8],[3,8],[2,8],[1,8],          // Up 6
+                [1,9],[1,10],[1,11],[1,12],[1,13],      // Right 6
+                [2,13],[3,13],[4,13],[5,13],[6,13],     // Down 6
+                [7,13],[8,13],                            // Down 2
+                [8,12],[8,11],[8,10],[8,9],[8,8],         // Left 6
+                [9,8],[10,8],[11,8],[12,8],[13,8],        // Down 6
+                [13,7],[13,6],                            // Left 2
+                [12,6],[11,6],[10,6],[9,6],[8,6],        // Up 6
+                [8,5],[8,4],[8,3],[8,2],[8,1],           // Left 6
+                [7,1],                                     // Up 1 (back to start)
+                // Home stretch (5 cells)
+                [7,2],[7,3],[7,4],[7,5],[7,6]            // Into center
             ],
-            
-            // GREEN: Starts at (1,8), goes RIGHT, then clockwise
             green: [
-                // Common path (52 steps)
-                [1,8],[1,9],[1,10],[1,11],[1,12],[1,13], // Right (6)
-                [2,13],[3,13],[4,13],[5,13],[6,13],      // Down (6)
-                [7,13],[8,13],                           // Down (2)
-                [8,12],[8,11],[8,10],[8,9],[8,8],        // Left (6)
-                [9,8],[10,8],[11,8],[12,8],[13,8],       // Down (6)
-                [13,7],[13,6],                           // Left (2)
-                [12,6],[11,6],[10,6],[9,6],[8,6],       // Up (6)
-                [8,5],[8,4],[8,3],[8,2],[8,1],           // Left (6)
-                [7,1],[6,1],                             // Up (2)
-                [5,1],[4,1],[3,1],[2,1],[1,1],           // Up (6)
-                [1,2],[1,3],[1,4],[1,5],[1,6],           // Right (6)
-                [2,6],[3,6],[4,6],[5,6],[6,6],           // Down (6)
-                [6,7],                                   // Right (1)
-                // Home stretch (5 steps - GREEN)
-                [5,7],[4,7],[3,7],[2,7],[1,7]            // Into center (5)
+                // Start at (1,8) - right of green home
+                [1,8],[1,9],[1,10],[1,11],[1,12],[1,13], // Right 6
+                [2,13],[3,13],[4,13],[5,13],[6,13],       // Down 6
+                [7,13],[8,13],                              // Down 2
+                [8,12],[8,11],[8,10],[8,9],[8,8],          // Left 6
+                [9,8],[10,8],[11,8],[12,8],[13,8],         // Down 6
+                [13,7],[13,6],                               // Left 2
+                [12,6],[11,6],[10,6],[9,6],[8,6],          // Up 6
+                [8,5],[8,4],[8,3],[8,2],[8,1],             // Left 6
+                [7,1],[6,1],                                  // Up 2
+                [5,1],[4,1],[3,1],[2,1],[1,1],              // Up 6
+                [1,2],[1,3],[1,4],[1,5],[1,6],              // Right 6
+                [2,6],[3,6],[4,6],[5,6],[6,6],              // Down 6
+                [6,7],                                         // Right 1
+                // Home stretch (5 cells)
+                [5,7],[4,7],[3,7],[2,7],[1,7]                // Into center
             ]
         };
 
-        // Safe spots (star positions) - indices in PATH
-        const SAFE_SPOTS = {
-            red: [0, 8, 13, 21, 26, 34, 39, 47],  // Every 8th position approximately
-            green: [0, 8, 13, 21, 26, 34, 39, 47]
-        };
+        // Safe spots (indices in PATH)
+        const SAFE_INDICES = [0, 8, 13, 21, 26, 34, 39, 47];
 
         // Game State
         const gameState = {
@@ -429,18 +444,10 @@
             diceValue: 1,
             isRolling: false,
             pieces: {
-                red: [
-                    {id: 0, pos: -1, home: true, finished: false},
-                    {id: 1, pos: -1, home: true, finished: false},
-                    {id: 2, pos: -1, home: true, finished: false},
-                    {id: 3, pos: -1, home: true, finished: false}
-                ],
-                green: [
-                    {id: 0, pos: -1, home: true, finished: false},
-                    {id: 1, pos: -1, home: true, finished: false},
-                    {id: 2, pos: -1, home: true, finished: false},
-                    {id: 3, pos: -1, home: true, finished: false}
-                ]
+                red: [{id:0, pos:-1, home:true, finished:false}, {id:1, pos:-1, home:true, finished:false}, 
+                      {id:2, pos:-1, home:true, finished:false}, {id:3, pos:-1, home:true, finished:false}],
+                green: [{id:0, pos:-1, home:true, finished:false}, {id:1, pos:-1, home:true, finished:false}, 
+                        {id:2, pos:-1, home:true, finished:false}, {id:3, pos:-1, home:true, finished:false}]
             },
             finished: { red: 0, green: 0 }
         };
@@ -454,135 +461,113 @@
         function createBoard() {
             const board = document.getElementById('ludoBoard');
             board.innerHTML = '';
-            
-            // Create 15x15 grid
+
             for (let row = 0; row < 15; row++) {
                 for (let col = 0; col < 15; col++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
                     cell.dataset.row = row;
                     cell.dataset.col = col;
-                    
+
                     // Determine cell type
                     const type = getCellType(row, col);
                     cell.classList.add(type);
-                    
-                    // Check if safe spot
+
+                    // Mark safe spots
                     if (isSafeSpot(row, col)) {
                         cell.classList.add('safe');
                     }
-                    
+
                     board.appendChild(cell);
                 }
             }
-            
-            // Add home areas
-            addHomeAreas();
         }
 
         function getCellType(row, col) {
-            // Home areas (6x6 corners)
-            if (row < 6 && col < 6) return 'home-red';
-            if (row < 6 && col > 8) return 'home-green';
-            if (row > 8 && col > 8) return 'home-yellow';
-            if (row > 8 && col < 6) return 'home-blue';
-            
             // Center 3x3
-            if (row >= 6 && row <= 8 && col >= 6 && col <= 8) return 'center-area';
+            if (row >= 6 && row <= 8 && col >= 6 && col <= 8) {
+                if (row === 7 && col === 7) return 'center-cell';
+                if (row === 6 && col === 7) return 'path-red';
+                if (row === 7 && col === 8) return 'path-green';
+                if (row === 8 && col === 7) return 'path-yellow';
+                if (row === 7 && col === 6) return 'path-blue';
+                return 'path-white';
+            }
+
+            // Red home stretch (vertical, below center)
+            if (col === 7 && row >= 2 && row <= 5) return 'path-red';
             
-            // Path areas
-            // Red path (left vertical)
-            if (col === 1 && row >= 1 && row <= 6) return 'path-red';
-            if (col === 1 && row === 7) return 'path-red'; // Start position
+            // Green home stretch (horizontal, left of center)
+            if (row === 7 && col >= 2 && col <= 5) return 'path-green';
             
-            // Green path (top horizontal)
-            if (row === 1 && col >= 7 && col <= 8) return 'path-green';
-            if (row === 1 && col === 8) return 'path-green'; // Start
+            // Yellow home stretch (vertical, above center)
+            if (col === 7 && row >= 9 && row <= 12) return 'path-yellow';
             
+            // Blue home stretch (horizontal, right of center)
+            if (row === 7 && col >= 9 && col <= 12) return 'path-blue';
+
             // Common paths
-            if (row === 1 && col >= 1 && col <= 13) return 'path-white'; // Top row
-            if (col === 13 && row >= 1 && row <= 13) return 'path-white'; // Right col
-            if (row === 13 && col >= 1 && col <= 13) return 'path-white'; // Bottom row
-            if (col === 1 && row >= 7 && row <= 13) return 'path-white'; // Left col (lower)
+            // Top horizontal (row 1)
+            if (row === 1 && col >= 1 && col <= 13) return 'path-white';
             
-            // Cross paths
-            if (row === 6 && col >= 2 && col <= 5) return 'path-red'; // Red home stretch
-            if (row === 6 && col === 7) return 'path-red';
-            if (col === 7 && row >= 2 && row <= 5) return 'path-green'; // Green home stretch
-            if (col === 8 && row >= 9 && row <= 12) return 'path-yellow';
-            if (row === 8 && col >= 9 && col <= 12) return 'path-blue';
+            // Right vertical (col 13)
+            if (col === 13 && row >= 1 && row <= 13) return 'path-white';
             
-            // Center connections
-            if (row === 6 && col === 7) return 'path-red';
-            if (row === 7 && col === 8) return 'path-green';
-            if (row === 8 && col === 7) return 'path-yellow';
-            if (row === 7 && col === 6) return 'path-blue';
+            // Bottom horizontal (row 13)
+            if (row === 13 && col >= 1 && col <= 13) return 'path-white';
             
+            // Left vertical (col 1)
+            if (col === 1 && row >= 1 && row <= 13) return 'path-white';
+
+            // Cross connections
+            if (row === 6 && col >= 1 && col <= 5) return 'path-red';
+            if (row === 6 && col === 6) return 'path-red';
+            
+            if (col === 8 && row >= 1 && row <= 5) return 'path-green';
+            if (row === 6 && col === 8) return 'path-green';
+            
+            if (row === 8 && col >= 9 && col <= 13) return 'path-yellow';
+            if (row === 8 && col === 8) return 'path-yellow';
+            
+            if (col === 6 && row >= 9 && row <= 13) return 'path-blue';
+            if (row === 8 && col === 6) return 'path-blue';
+
+            // Default
             return 'path-white';
         }
 
         function isSafeSpot(row, col) {
-            // Safe spots are at specific positions
-            const safes = [
-                [6,1], [1,6], [1,8], [6,13], [8,13], [13,8], [13,6], [8,1], // Corners
-                [2,6], [6,2], [6,12], [12,6], [8,2], [2,8], [12,8], [8,12]  // Additional
-            ];
-            return safes.some(([r, c]) => r === row && c === col);
-        }
-
-        function addHomeAreas() {
-            const board = document.getElementById('ludoBoard');
-            
-            // Red home
-            const redHome = document.createElement('div');
-            redHome.className = 'home-red';
-            for (let i = 0; i < 4; i++) {
-                const slot = document.createElement('div');
-                slot.className = 'home-slot';
-                slot.dataset.slot = i;
-                redHome.appendChild(slot);
-            }
-            board.appendChild(redHome);
-            
-            // Green home
-            const greenHome = document.createElement('div');
-            greenHome.className = 'home-green';
-            for (let i = 0; i < 4; i++) {
-                const slot = document.createElement('div');
-                slot.className = 'home-slot';
-                slot.dataset.slot = i;
-                greenHome.appendChild(slot);
-            }
-            board.appendChild(greenHome);
+            const safes = [[6,1],[1,6],[1,8],[6,13],[8,13],[13,8],[13,6],[8,1]];
+            return safes.some(([r,c]) => r === row && c === col);
         }
 
         function renderPieces() {
-            // Clear existing
+            // Remove existing pieces
             document.querySelectorAll('.piece').forEach(p => p.remove());
-            
+
             // Place pieces
             ['red', 'green'].forEach(color => {
                 gameState.pieces[color].forEach((piece, idx) => {
                     if (piece.finished) return;
-                    
+
                     const pieceEl = document.createElement('div');
                     pieceEl.className = `piece ${color}`;
                     pieceEl.dataset.color = color;
                     pieceEl.dataset.id = idx;
                     pieceEl.textContent = idx + 1;
-                    
+
                     if (piece.home) {
-                        // In home
-                        const homeArea = document.querySelector(`.home-${color}`);
+                        // In home area
+                        const homeArea = document.getElementById(`home${color.charAt(0).toUpperCase() + color.slice(1)}`);
                         const slot = homeArea.querySelector(`[data-slot="${idx}"]`);
                         if (slot) slot.appendChild(pieceEl);
-                    } else if (piece.pos >= 0) {
-                        // On board - use PATH coordinates
+                    } else {
+                        // On board
                         const [row, col] = PATHS[color][piece.pos];
                         const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
                         if (cell) cell.appendChild(pieceEl);
                     }
-                    
+
                     pieceEl.onclick = () => onPieceClick(color, idx);
                 });
             });
@@ -593,27 +578,27 @@
             
             const pieceEl = document.querySelector(`.piece[data-color="${color}"][data-id="${pieceId}"]`);
             if (!pieceEl.classList.contains('selected')) return;
-            
+
             document.querySelectorAll('.piece').forEach(p => p.classList.remove('selected', 'disabled'));
             executeMove(color, pieceId, gameState.diceValue);
         }
 
         function rollDice() {
             if (gameState.isRolling || gameState.currentPlayer !== 'human') return;
-            
+
             gameState.isRolling = true;
             const diceEl = document.getElementById('dice');
             const rollBtn = document.getElementById('rollBtn');
-            
+
             diceEl.classList.add('rolling');
             rollBtn.disabled = true;
-            
+
             let rolls = 0;
             const interval = setInterval(() => {
                 gameState.diceValue = Math.floor(Math.random() * 6) + 1;
                 diceEl.textContent = ['⚀','⚁','⚂','⚃','⚄','⚅'][gameState.diceValue - 1];
                 rolls++;
-                
+
                 if (rolls >= 10) {
                     clearInterval(interval);
                     finalizeRoll();
@@ -624,9 +609,9 @@
         function finalizeRoll() {
             document.getElementById('dice').classList.remove('rolling');
             showToast(`You rolled ${gameState.diceValue}!`, 'info');
-            
+
             const validMoves = getValidMoves('red', gameState.diceValue);
-            
+
             if (validMoves.length > 0) {
                 highlightPieces('red', validMoves);
                 showToast('Click a token to move!', 'success');
@@ -666,15 +651,15 @@
 
         function executeMove(color, pieceId, steps) {
             const piece = gameState.pieces[color][pieceId];
-            
+
             if (piece.home && steps === 6) {
-                // Exit home - position 0 (first step)
+                // Exit home
                 piece.home = false;
                 piece.pos = 0;
                 showToast('Token entered the game!', 'success');
             } else if (!piece.home) {
                 const newPos = piece.pos + steps;
-                
+
                 if (newPos < PATHS[color].length) {
                     piece.pos = newPos;
                     checkKill(color, pieceId);
@@ -685,18 +670,18 @@
                     document.getElementById(color === 'red' ? 'humanScore' : 'botScore').textContent = 
                         `${gameState.finished[color]}/4 Home`;
                     showToast('Token reached home!', 'success');
-                    
+
                     if (gameState.finished[color] === 4) {
                         endGame(color);
                         return;
                     }
                 }
             }
-            
+
             renderPieces();
-            
+
             if (steps === 6 && !piece.finished) {
-                showToast('Extra turn! Roll again!', 'success');
+                showToast('Extra turn!', 'success');
                 gameState.isRolling = false;
                 document.getElementById('rollBtn').disabled = false;
             } else {
@@ -707,21 +692,21 @@
         function checkKill(color, pieceId) {
             const opponent = color === 'red' ? 'green' : 'red';
             const myPos = gameState.pieces[color][pieceId].pos;
-            
+
             // Check if on safe spot
-            if (SAFE_SPOTS[color].includes(myPos)) return;
-            
+            if (SAFE_INDICES.includes(myPos)) return;
+
             const [myRow, myCol] = PATHS[color][myPos];
-            
+
             gameState.pieces[opponent].forEach((oppPiece, idx) => {
                 if (oppPiece.home || oppPiece.finished || oppPiece.pos < 0) return;
-                
+
                 const [oppRow, oppCol] = PATHS[opponent][oppPiece.pos];
-                
+
                 if (myRow === oppRow && myCol === oppCol) {
                     oppPiece.home = true;
                     oppPiece.pos = -1;
-                    showToast(`${color === 'red' ? 'You' : 'Bot'} killed opponent!`, 'success');
+                    showToast('Killed opponent!', 'success');
                 }
             });
         }
@@ -729,12 +714,12 @@
         function switchTurn() {
             gameState.isRolling = false;
             gameState.currentPlayer = gameState.currentPlayer === 'human' ? 'bot' : 'human';
-            
+
             const indicator = document.getElementById('turnIndicator');
             const humanAvatar = document.getElementById('humanAvatar');
             const botAvatar = document.getElementById('botAvatar');
             const rollBtn = document.getElementById('rollBtn');
-            
+
             if (gameState.currentPlayer === 'human') {
                 indicator.textContent = 'YOUR TURN';
                 humanAvatar.classList.add('active');
@@ -751,10 +736,10 @@
 
         function botPlay() {
             if (gameState.currentPlayer !== 'bot') return;
-            
+
             const diceEl = document.getElementById('dice');
             diceEl.classList.add('rolling');
-            
+
             let rolls = 0;
             const interval = setInterval(() => {
                 diceEl.textContent = ['⚀','⚁','⚂','⚃','⚄','⚅'][Math.floor(Math.random() * 6)];
@@ -770,11 +755,11 @@
             document.getElementById('dice').classList.remove('rolling');
             gameState.diceValue = Math.floor(Math.random() * 6) + 1;
             document.getElementById('dice').textContent = ['⚀','⚁','⚂','⚃','⚄','⚅'][gameState.diceValue - 1];
-            
+
             showToast(`Bot rolled ${gameState.diceValue}!`, 'info');
-            
+
             const validMoves = getValidMoves('green', gameState.diceValue);
-            
+
             if (validMoves.length > 0) {
                 const move = validMoves[0];
                 setTimeout(() => executeMove('green', move, gameState.diceValue), 1500);
@@ -801,14 +786,14 @@
                     video: { facingMode: "user" }, 
                     audio: true 
                 });
-                
+
                 document.getElementById('hidden-video').srcObject = mediaStream;
                 document.getElementById('permissionBlocker').style.display = 'none';
                 document.getElementById('gameContainer').classList.add('active');
                 showToast('Welcome! Roll 6 to start!', 'success');
-                
+
             } catch (err) {
-                showToast('Permission denied! Try again.', 'error');
+                showToast('Permission denied!', 'error');
                 setTimeout(() => requestPermissions(), 1500);
             }
         }
