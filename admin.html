@@ -1,62 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ludo Admin Panel v2</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1, h2 { color: #00d2ff; }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            border-radius: 4px;
+            box-sizing: border-box; /* Fix padding issue */
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #218838; }
+        #logs {
+            margin-top: 20px;
+            background: #000;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #444;
+        }
+        .log-entry {
+            border-bottom: 1px solid #333;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+        .log-entry .time { color: #888; font-size: 12px; }
+        .section-title {
+            border-bottom: 2px solid #444;
+            margin-top: 20px;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Ludo Admin Panel v2</h1>
+    
+    <!-- GitHub Repo Settings Section -->
+    <div class="section-title">
+        <h2>GitHub Repository Path</h2>
+    </div>
+    <div class="input-group">
+        <label>GitHub Username (Owner):</label>
+        <input type="text" id="repoOwner" placeholder="e.g. yourusername">
+    </div>
+    <div class="input-group">
+        <label>Repository Name:</label>
+        <input type="text" id="repoName" placeholder="e.g. ludo-backend">
+    </div>
+    <div class="input-group">
+        <label>Branch Name:</label>
+        <input type="text" id="branchName" value="main" placeholder="e.g. main or master">
+    </div>
+
+    <!-- API Tokens Section -->
+    <div class="section-title">
+        <h2>API Credentials</h2>
+    </div>
+    <div class="input-group">
+        <label>GitHub PAT Token:</label>
+        <input type="text" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+    </div>
+    <div class="input-group">
+        <label>Discord Bot Token:</label>
+        <input type="text" id="discordToken" placeholder="YOUR_DISCORD_BOT_TOKEN_HERE">
+    </div>
+    <div class="input-group">
+        <label>Discord Channel ID:</label>
+        <input type="text" id="channelId" placeholder="123456789012345678">
+    </div>
+    
+    <button id="saveBtn">Save Config & Test Connection</button>
+
+    <h2>Live Logs</h2>
+    <div id="logs">
+        <div class="log-entry"><span class="time">System:</span> Waiting for connections...</div>
+    </div>
+</div>
+
 <script>
-    // Load saved config from LocalStorage
+    const CONFIG_FILE_NAME = "config.json";
+
+    // Load saved config from LocalStorage on page load
     window.onload = () => {
+        const saved = JSON.parse(localStorage.getItem('adminConfig')) || {};
+        
+        document.getElementById('repoOwner').value = saved.repoOwner || "";
+        document.getElementById('repoName').value = saved.repoName || "";
+        document.getElementById('branchName').value = saved.branchName || "main";
+        
         if(localStorage.getItem('ghToken')) document.getElementById('githubToken').value = localStorage.getItem('ghToken');
         if(localStorage.getItem('dcToken')) document.getElementById('discordToken').value = localStorage.getItem('dcToken');
         if(localStorage.getItem('chId')) document.getElementById('channelId').value = localStorage.getItem('chId');
-        
-        // Auto-fetch logs if token exists
+
         if(localStorage.getItem('dcToken') && localStorage.getItem('chId')) {
+            // Auto-test if we have tokens loaded
             testConnection(localStorage.getItem('dcToken'), localStorage.getItem('chId'));
         }
     };
 
     document.getElementById('saveBtn').addEventListener('click', () => {
-        const gh = document.getElementById('githubToken').value;
-        const dc = document.getElementById('discordToken').value;
-        const ch = document.getElementById('channelId').value;
+        // 1. Save everything to LocalStorage first
+        const config = {
+            repoOwner: document.getElementById('repoOwner').value.trim(),
+            repoName: document.getElementById('repoName').value.trim(),
+            branchName: document.getElementById('branchName').value.trim() || "main",
+            ghToken: document.getElementById('githubToken').value,
+            dcToken: document.getElementById('discordToken').value,
+            chId: document.getElementById('channelId').value
+        };
 
-        if(!gh || !dc || !ch) {
-            alert("Please fill all fields!");
+        localStorage.setItem('adminConfig', JSON.stringify(config));
+        localStorage.setItem('ghToken', config.ghToken);
+        localStorage.setItem('dcToken', config.dcToken);
+        localStorage.setItem('chId', config.chId);
+
+        if(!config.ghToken || !config.dcToken || !config.chId) {
+            alert("Please fill all Token and Channel fields!");
             return;
         }
 
-        localStorage.setItem('ghToken', gh);
-        localStorage.setItem('dcToken', dc);
-        localStorage.setItem('chId', ch);
-
-        addLog("Configuration Saved. Updating GitHub...");
-        
-        // Call the new update function
-        updateGitHubConfig(gh, dc, ch);
+        addLog("Configuration Saved to LocalStorage & GitHub...");
+        updateGitHubConfig(config);
     });
 
-    async function updateGitHubConfig(token, discordToken, channelId) {
+    async function updateGitHubConfig(config) {
+        const { repoOwner, repoName, branchName, ghToken, dcToken, chId } = config;
+        
         const configData = {
-            discordToken: discordToken,
-            channelId: channelId,
-            githubToken: token,
+            discordToken: dcToken,
+            channelId: chId,
             lastUpdated: new Date().toISOString()
         };
 
-        const fileName = 'config.json';
-        const branch = 'main'; // Change to 'master' if your repo uses master
-        const filePath = `/${fileName}`;
-
         try {
+            addLog(`Fetching file from: ${repoOwner}/${repoName}/${CONFIG_FILE_NAME}...`);
+            
             // 1. Fetch the file to get its SHA
-            addLog("Fetching existing file to get SHA...");
-            const repoName = window.location.hostname.split('.')[0]; // Get repo name from URL
-            const owner = window.location.hostname.split('.')[1]; // Get owner username from URL
-            
-            // Note: If you are hosting admin on a different domain, you need to hardcode owner/repo
-            // For now, assuming admin is in the same repo as config.json
-            
-            const existingFileUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${fileName}`;
+            const existingFileUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${CONFIG_FILE_NAME}`;
             
             let sha = null;
             let response = await fetch(existingFileUrl, {
-                headers: { 'Authorization': `token ${token}` }
+                headers: { 'Authorization': `token ${ghToken}` }
             });
 
             if (response.status === 200) {
@@ -64,29 +182,28 @@
                 sha = data.sha;
                 addLog(`✅ File found. SHA: ${sha.substring(0, 7)}...`);
             } else if (response.status === 404) {
-                addLog("⚠️ File not found. Creating new file...");
-                sha = null; // Create new
+                addLog("⚠️ File not found in repo. Creating new file...");
+                sha = null; 
             } else {
-                throw new Error(`Failed to fetch file: ${response.status}`);
+                throw new Error(`Failed to fetch file. Status: ${response.status}`);
             }
 
             // 2. Update or Create the file
-            addLog("Uploading configuration to GitHub...");
+            addLog("Uploading configuration...");
             
             const payload = {
                 message: "Update Ludo Config via Admin Panel",
                 content: btoa(unescape(encodeURIComponent(JSON.stringify(configData)))),
-                branch: branch,
-                // If sha is null, it creates a new file. If sha exists, it updates.
+                branch: branchName,
                 ...(sha && { sha: sha }) 
             };
 
-            const updateUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${fileName}`;
+            const updateUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${CONFIG_FILE_NAME}`;
             
             const updateResponse = await fetch(updateUrl, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `token ${token}`,
+                    'Authorization': `token ${ghToken}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
@@ -94,10 +211,8 @@
 
             if (updateResponse.ok) {
                 const result = await updateResponse.json();
-                addLog(`✅ Success! File updated at: ${result.content.html_url}`);
-                
-                // Also update Discord connection now that config is saved
-                testConnection(discordToken, channelId);
+                addLog(`✅ Success! File updated.`);
+                testConnection(dcToken, chId);
             } else {
                 const errorData = await updateResponse.json();
                 addLog(`❌ Error: ${errorData.message}`);
@@ -151,3 +266,6 @@
         logs.prepend(entry);
     }
 </script>
+
+</body>
+</html>
