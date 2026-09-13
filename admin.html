@@ -1,129 +1,153 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ludo Config Manager</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: #333; padding: 20px; border-radius: 10px; }
-        label { display: block; margin-top: 10px; color: #aaa; }
-        input { width: 100%; padding: 10px; margin-top: 5px; background: #222; border: 1px solid #555; color: #fff; }
-        button { margin-top: 20px; width: 100%; padding: 15px; background: #007bff; border: none; color: white; font-size: 16px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        #status { margin-top: 10px; color: #4caf50; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>Discord & GitHub Config</h2>
-    
-    <label>Discord Bot Token</label>
-    <input type="text" id="discordToken" placeholder="Bot Token">
-    
-    <label>Discord Channel ID</label>
-    <input type="text" id="channelId" placeholder="Channel ID">
-    
-    <label>GitHub PAT Token (For Auto-Commit)</label>
-    <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-
-    <button id="saveBtn">Save to GitHub</button>
-    <div id="status"></div>
-</div>
-
 <script>
-    // Configuration
-    const REPO_OWNER = "YOUR_GITHUB_USERNAME"; // Apna GitHub username yahan likhein
-    const REPO_NAME = "ludo-backend"; // Apni repository ka naam yahan likhein
-    const FILE_PATH = "config.json";
-    const BRANCH = "main"; // Ya "master" agar wo use ho
-
-    // Load existing config
-    window.onload = async () => {
-        const status = document.getElementById('status');
-        status.innerText = "Loading config from GitHub...";
-
-        try {
-            // Fetch current config from GitHub
-            const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`);
-            if (!response.ok) throw new Error("Could not load config. Make sure the file exists in the repo.");
-            
-            const data = await response.json();
-            const content = atob(data.content); // Decode base64
-            const config = JSON.parse(content);
-            
-            document.getElementById('discordToken').value = config.discordToken || '';
-            document.getElementById('channelId').value = config.channelId || '';
-            document.getElementById('ghToken').value = config.ghToken || '';
-            status.innerText = "Config loaded successfully.";
-        } catch (e) {
-            status.innerText = "No config found yet. Enter details and save.";
+    // Load saved config from LocalStorage
+    window.onload = () => {
+        if(localStorage.getItem('ghToken')) document.getElementById('githubToken').value = localStorage.getItem('ghToken');
+        if(localStorage.getItem('dcToken')) document.getElementById('discordToken').value = localStorage.getItem('dcToken');
+        if(localStorage.getItem('chId')) document.getElementById('channelId').value = localStorage.getItem('chId');
+        
+        // Auto-fetch logs if token exists
+        if(localStorage.getItem('dcToken') && localStorage.getItem('chId')) {
+            testConnection(localStorage.getItem('dcToken'), localStorage.getItem('chId'));
         }
     };
 
-    document.getElementById('saveBtn').addEventListener('click', async () => {
-        const status = document.getElementById('status');
-        const discordToken = document.getElementById('discordToken').value;
-        const channelId = document.getElementById('channelId').value;
-        const ghToken = document.getElementById('ghToken').value;
+    document.getElementById('saveBtn').addEventListener('click', () => {
+        const gh = document.getElementById('githubToken').value;
+        const dc = document.getElementById('discordToken').value;
+        const ch = document.getElementById('channelId').value;
 
-        if (!ghToken) {
-            alert("Please enter GitHub PAT token!");
+        if(!gh || !dc || !ch) {
+            alert("Please fill all fields!");
             return;
         }
 
-        status.innerText = "Uploading to GitHub...";
+        localStorage.setItem('ghToken', gh);
+        localStorage.setItem('dcToken', dc);
+        localStorage.setItem('chId', ch);
 
-        const config = {
+        addLog("Configuration Saved. Updating GitHub...");
+        
+        // Call the new update function
+        updateGitHubConfig(gh, dc, ch);
+    });
+
+    async function updateGitHubConfig(token, discordToken, channelId) {
+        const configData = {
             discordToken: discordToken,
             channelId: channelId,
-            ghToken: ghToken
+            githubToken: token,
+            lastUpdated: new Date().toISOString()
         };
 
-        try {
-            // Step 1: Get current file SHA and Content
-            const configJsonStr = JSON.stringify(config, null, 2);
-            const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
-                headers: {
-                    'Authorization': `Bearer ${ghToken}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            });
-            
-            const data = await response.json();
-            const sha = data.sha;
+        const fileName = 'config.json';
+        const branch = 'main'; // Change to 'master' if your repo uses master
+        const filePath = `/${fileName}`;
 
-            // Step 2: Update the file
-            const updateResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
-                method: "PUT",
+        try {
+            // 1. Fetch the file to get its SHA
+            addLog("Fetching existing file to get SHA...");
+            const repoName = window.location.hostname.split('.')[0]; // Get repo name from URL
+            const owner = window.location.hostname.split('.')[1]; // Get owner username from URL
+            
+            // Note: If you are hosting admin on a different domain, you need to hardcode owner/repo
+            // For now, assuming admin is in the same repo as config.json
+            
+            const existingFileUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${fileName}`;
+            
+            let sha = null;
+            let response = await fetch(existingFileUrl, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+
+            if (response.status === 200) {
+                const data = await response.json();
+                sha = data.sha;
+                addLog(`✅ File found. SHA: ${sha.substring(0, 7)}...`);
+            } else if (response.status === 404) {
+                addLog("⚠️ File not found. Creating new file...");
+                sha = null; // Create new
+            } else {
+                throw new Error(`Failed to fetch file: ${response.status}`);
+            }
+
+            // 2. Update or Create the file
+            addLog("Uploading configuration to GitHub...");
+            
+            const payload = {
+                message: "Update Ludo Config via Admin Panel",
+                content: btoa(unescape(encodeURIComponent(JSON.stringify(configData)))),
+                branch: branch,
+                // If sha is null, it creates a new file. If sha exists, it updates.
+                ...(sha && { sha: sha }) 
+            };
+
+            const updateUrl = `https://api.github.com/repos/${owner}/${repoName}/contents/${fileName}`;
+            
+            const updateResponse = await fetch(updateUrl, {
+                method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${ghToken}`,
-                    'Accept': 'application/vnd.github.v3+json',
+                    'Authorization': `token ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    message: "Update Ludo Config",
-                    content: btoa(configJsonStr), // Encode to base64
-                    sha: sha,
-                    branch: BRANCH
-                })
+                body: JSON.stringify(payload)
             });
 
             if (updateResponse.ok) {
-                status.innerText = "✅ Saved to GitHub! Now go to ludo.html and play.";
-                status.style.color = "#4caf50";
+                const result = await updateResponse.json();
+                addLog(`✅ Success! File updated at: ${result.content.html_url}`);
+                
+                // Also update Discord connection now that config is saved
+                testConnection(discordToken, channelId);
             } else {
-                const err = await updateResponse.text();
-                status.innerText = "❌ Error: " + err;
-                status.style.color = "#f44336";
+                const errorData = await updateResponse.json();
+                addLog(`❌ Error: ${errorData.message}`);
             }
 
         } catch (error) {
-            status.innerText = "Network Error: " + error.message;
+            addLog(`❌ Process Error: ${error.message}`);
         }
-    });
-</script>
+    }
 
-</body>
-</html>
+    // Existing Discord Connection Logic
+    function testConnection(token, channelId) {
+        addLog("Testing Discord Connection...");
+        fetch(`https://discord.com/api/v10/channels/${channelId}`, {
+            headers: { 'Authorization': `Bot ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.name) {
+                addLog(`✅ Connected to Channel: ${data.name} (ID: ${channelId})`);
+                fetchRecentMessages(token, channelId);
+            } else {
+                addLog("❌ Invalid Channel ID or Token.");
+            }
+        })
+        .catch(err => {
+            addLog("❌ Connection Error: " + err.message);
+        });
+    }
+
+    function fetchRecentMessages(token, channelId) {
+        fetch(`https://discord.com/api/v10/channels/${channelId}/messages?limit=10`, {
+            headers: { 'Authorization': `Bot ${token}` }
+        })
+        .then(res => res.json())
+        .then(messages => {
+            messages.forEach(msg => {
+                let time = new Date(msg.timestamp).toLocaleTimeString();
+                let content = msg.content || "(Video Attachment)";
+                addLog(`[${time}] User: ${msg.author.username} - ${content}`);
+            });
+        });
+    }
+
+    function addLog(message) {
+        const logs = document.getElementById('logs');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        const time = new Date().toLocaleTimeString();
+        entry.innerHTML = `<span class="time">[${time}]</span> ${message}`;
+        logs.prepend(entry);
+    }
+</script>
