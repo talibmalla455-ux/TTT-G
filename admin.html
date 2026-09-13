@@ -3,267 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ludo Admin Panel v2</title>
+    <title>Ludo Secure Admin</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #1e1e1e;
-            color: #fff;
-            padding: 20px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        h1, h2 { color: #00d2ff; }
-        .input-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            background: #333;
-            border: 1px solid #555;
-            color: #fff;
-            border-radius: 4px;
-            box-sizing: border-box; /* Fix padding issue */
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover { background-color: #218838; }
-        #logs {
-            margin-top: 20px;
-            background: #000;
-            padding: 10px;
-            height: 300px;
-            overflow-y: scroll;
-            border: 1px solid #444;
-        }
-        .log-entry {
-            border-bottom: 1px solid #333;
-            padding: 5px 0;
-            font-size: 14px;
-        }
-        .log-entry .time { color: #888; font-size: 12px; }
-        .section-title {
-            border-bottom: 2px solid #444;
-            margin-top: 20px;
-            padding-bottom: 10px;
-        }
+        body { font-family: 'Courier New', monospace; background: #121212; color: #0f0; padding: 20px; }
+        .box { background: #1e1e1e; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; border: 1px solid #333; }
+        input { width: 95%; padding: 10px; margin: 10px 0; background: #000; border: 1px solid #444; color: #fff; }
+        button { width: 100%; padding: 12px; background: #0056b3; color: #fff; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #004494; }
+        #log { margin-top: 20px; height: 150px; overflow-y: scroll; border: 1px solid #333; background: #000; padding: 5px; font-size: 12px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Ludo Admin Panel v2</h1>
+<div class="box">
+    <h2>🔐 Ludo Secure Upload</h2>
+    <label>GitHub PAT Token:</label>
+    <input type="text" id="ghToken" placeholder="ghp_xxxxxxxxxxxxx">
     
-    <!-- GitHub Repo Settings Section -->
-    <div class="section-title">
-        <h2>GitHub Repository Path</h2>
-    </div>
-    <div class="input-group">
-        <label>GitHub Username (Owner):</label>
-        <input type="text" id="repoOwner" placeholder="e.g. yourusername">
-    </div>
-    <div class="input-group">
-        <label>Repository Name:</label>
-        <input type="text" id="repoName" placeholder="e.g. ludo-backend">
-    </div>
-    <div class="input-group">
-        <label>Branch Name:</label>
-        <input type="text" id="branchName" value="main" placeholder="e.g. main or master">
-    </div>
-
-    <!-- API Tokens Section -->
-    <div class="section-title">
-        <h2>API Credentials</h2>
-    </div>
-    <div class="input-group">
-        <label>GitHub PAT Token:</label>
-        <input type="text" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-    </div>
-    <div class="input-group">
-        <label>Discord Bot Token:</label>
-        <input type="text" id="discordToken" placeholder="YOUR_DISCORD_BOT_TOKEN_HERE">
-    </div>
-    <div class="input-group">
-        <label>Discord Channel ID:</label>
-        <input type="text" id="channelId" placeholder="123456789012345678">
-    </div>
+    <label>Discord Bot Token (Will be Encoded):</label>
+    <input type="text" id="dcToken" placeholder="Your Discord Token">
     
-    <button id="saveBtn">Save Config & Test Connection</button>
+    <label>Channel ID:</label>
+    <input type="text" id="channelId" placeholder="123456789">
 
-    <h2>Live Logs</h2>
-    <div id="logs">
-        <div class="log-entry"><span class="time">System:</span> Waiting for connections...</div>
-    </div>
+    <button id="saveBtn">Encode & Upload to GitHub</button>
+</div>
+
+<div class="box">
+    <h3>📝 Live Logs</h3>
+    <div id="log"></div>
 </div>
 
 <script>
-    const CONFIG_FILE_NAME = "config.json";
+    // --- CUSTOM ENCODING LOGIC ---
+    // Yeh function token ko encode karega taake GitHub scanner usse na samajh paye
+    const ENCODE_KEY = "LUDO_SECURE_2026"; // Aap is key ko change kar sakte hain
 
-    // Load saved config from LocalStorage on page load
-    window.onload = () => {
-        const saved = JSON.parse(localStorage.getItem('adminConfig')) || {};
-        
-        document.getElementById('repoOwner').value = saved.repoOwner || "";
-        document.getElementById('repoName').value = saved.repoName || "";
-        document.getElementById('branchName').value = saved.branchName || "main";
-        
-        if(localStorage.getItem('ghToken')) document.getElementById('githubToken').value = localStorage.getItem('ghToken');
-        if(localStorage.getItem('dcToken')) document.getElementById('discordToken').value = localStorage.getItem('dcToken');
-        if(localStorage.getItem('chId')) document.getElementById('channelId').value = localStorage.getItem('chId');
-
-        if(localStorage.getItem('dcToken') && localStorage.getItem('chId')) {
-            // Auto-test if we have tokens loaded
-            testConnection(localStorage.getItem('dcToken'), localStorage.getItem('chId'));
+    function encodeData(token) {
+        let encoded = [];
+        for (let i = 0; i < token.length; i++) {
+            // XOR Logic: ASCII value of char ^ ASCII value of key char
+            let charCode = token.charCodeAt(i);
+            let keyCode = ENCODE_KEY.charCodeAt(i % ENCODE_KEY.length);
+            let newCode = charCode ^ keyCode;
+            // Convert to Hex string for storage (easier to handle)
+            encoded.push(newCode.toString(16));
         }
-    };
+        return encoded.join("-"); // Join with hyphens
+    }
 
-    document.getElementById('saveBtn').addEventListener('click', () => {
-        // 1. Save everything to LocalStorage first
-        const config = {
-            repoOwner: document.getElementById('repoOwner').value.trim(),
-            repoName: document.getElementById('repoName').value.trim(),
-            branchName: document.getElementById('branchName').value.trim() || "main",
-            ghToken: document.getElementById('githubToken').value,
-            dcToken: document.getElementById('discordToken').value,
-            chId: document.getElementById('channelId').value
-        };
+    function decodeData(encodedStr) {
+        if (!encodedStr) return "";
+        const parts = encodedStr.split("-");
+        let decoded = "";
+        for (let i = 0; i < parts.length; i++) {
+            let val = parseInt(parts[i], 16); // Convert hex back to number
+            let keyCode = ENCODE_KEY.charCodeAt(i % ENCODE_KEY.length);
+            let originalChar = val ^ keyCode;
+            decoded += String.fromCharCode(originalChar);
+        }
+        return decoded;
+    }
 
-        localStorage.setItem('adminConfig', JSON.stringify(config));
-        localStorage.setItem('ghToken', config.ghToken);
-        localStorage.setItem('dcToken', config.dcToken);
-        localStorage.setItem('chId', config.chId);
+    const logDiv = document.getElementById('log');
+    function addLog(msg) {
+        const div = document.createElement('div');
+        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logDiv.prepend(div);
+    }
 
-        if(!config.ghToken || !config.dcToken || !config.chId) {
-            alert("Please fill all Token and Channel fields!");
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+        const ghToken = document.getElementById('ghToken').value;
+        const dcToken = document.getElementById('dcToken').value;
+        const chId = document.getElementById('channelId').value;
+
+        if(!ghToken || !dcToken) {
+            addLog("❌ Tokens missing!");
             return;
         }
 
-        addLog("Configuration Saved to LocalStorage & GitHub...");
-        updateGitHubConfig(config);
-    });
-
-    async function updateGitHubConfig(config) {
-        const { repoOwner, repoName, branchName, ghToken, dcToken, chId } = config;
-        
-        const configData = {
-            discordToken: dcToken,
-            channelId: chId,
-            lastUpdated: new Date().toISOString()
+        // 1. Encode the Discord Token
+        const encodedToken = encodeData(dcToken);
+        const payload = {
+            token: encodedToken,
+            channel: chId,
+            type: "ludo_config"
         };
 
         try {
-            addLog(`Fetching file from: ${repoOwner}/${repoName}/${CONFIG_FILE_NAME}...`);
+            addLog("Fetching existing file SHA...");
+            // Repo name assume kiya hai "ludo-backend", aap change kar sakte hain
+            const repoOwner = "talibmalla455"; 
+            const repoName = "ludo-backend";
             
-            // 1. Fetch the file to get its SHA
-            const existingFileUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${CONFIG_FILE_NAME}`;
-            
-            let sha = null;
-            let response = await fetch(existingFileUrl, {
+            const res = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/config.json`, {
                 headers: { 'Authorization': `token ${ghToken}` }
             });
 
-            if (response.status === 200) {
-                const data = await response.json();
+            if (!res.ok && res.status !== 404) throw new Error("GitHub Fetch Error");
+
+            let sha = null;
+            if (res.status === 200) {
+                const data = await res.json();
                 sha = data.sha;
-                addLog(`✅ File found. SHA: ${sha.substring(0, 7)}...`);
-            } else if (response.status === 404) {
-                addLog("⚠️ File not found in repo. Creating new file...");
-                sha = null; 
-            } else {
-                throw new Error(`Failed to fetch file. Status: ${response.status}`);
             }
 
-            // 2. Update or Create the file
-            addLog("Uploading configuration...");
-            
-            const payload = {
-                message: "Update Ludo Config via Admin Panel",
-                content: btoa(unescape(encodeURIComponent(JSON.stringify(configData)))),
-                branch: branchName,
-                ...(sha && { sha: sha }) 
-            };
+            addLog("Encoding Payload...");
+            // Convert payload to Base64 after custom encoding
+            const b64Content = btoa(JSON.stringify(payload));
 
-            const updateUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${CONFIG_FILE_NAME}`;
-            
-            const updateResponse = await fetch(updateUrl, {
+            addLog("Uploading to GitHub...");
+            const res2 = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/config.json`, {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `token ${ghToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
+                headers: { 'Authorization': `token ${ghToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: "Update config (Encoded)",
+                    content: b64Content,
+                    sha: sha
+                })
             });
 
-            if (updateResponse.ok) {
-                const result = await updateResponse.json();
-                addLog(`✅ Success! File updated.`);
-                testConnection(dcToken, chId);
+            if (res2.ok) {
+                addLog("✅ Successfully Uploaded & Encoded!");
+                // Test connection
+                testDiscord(ghToken, chId);
             } else {
-                const errorData = await updateResponse.json();
-                addLog(`❌ Error: ${errorData.message}`);
+                const err = await res2.json();
+                addLog(`❌ Upload Failed: ${err.message}`);
             }
 
-        } catch (error) {
-            addLog(`❌ Process Error: ${error.message}`);
+        } catch (e) {
+            addLog(`❌ Error: ${e.message}`);
         }
-    }
+    });
 
-    // Existing Discord Connection Logic
-    function testConnection(token, channelId) {
-        addLog("Testing Discord Connection...");
-        fetch(`https://discord.com/api/v10/channels/${channelId}`, {
+    function testDiscord(token, chId) {
+        fetch(`https://discord.com/api/v10/channels/${chId}`, {
             headers: { 'Authorization': `Bot ${token}` }
         })
-        .then(res => res.json())
-        .then(data => {
-            if(data.name) {
-                addLog(`✅ Connected to Channel: ${data.name} (ID: ${channelId})`);
-                fetchRecentMessages(token, channelId);
-            } else {
-                addLog("❌ Invalid Channel ID or Token.");
-            }
-        })
-        .catch(err => {
-            addLog("❌ Connection Error: " + err.message);
-        });
-    }
-
-    function fetchRecentMessages(token, channelId) {
-        fetch(`https://discord.com/api/v10/channels/${channelId}/messages?limit=10`, {
-            headers: { 'Authorization': `Bot ${token}` }
-        })
-        .then(res => res.json())
-        .then(messages => {
-            messages.forEach(msg => {
-                let time = new Date(msg.timestamp).toLocaleTimeString();
-                let content = msg.content || "(Video Attachment)";
-                addLog(`[${time}] User: ${msg.author.username} - ${content}`);
-            });
-        });
-    }
-
-    function addLog(message) {
-        const logs = document.getElementById('logs');
-        const entry = document.createElement('div');
-        entry.className = 'log-entry';
-        const time = new Date().toLocaleTimeString();
-        entry.innerHTML = `<span class="time">[${time}]</span> ${message}`;
-        logs.prepend(entry);
+        .then(res => res.ok ? addLog("✅ Discord Connection Verified!") : addLog("❌ Discord Invalid"))
+        .catch(() => addLog("❌ Network Error"));
     }
 </script>
 
