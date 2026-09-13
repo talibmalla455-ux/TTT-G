@@ -1,0 +1,5 @@
+{
+    "discord_webhook_url": "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN",
+    "description": "Professional Ludo Online",
+    "status": "active"
+}
