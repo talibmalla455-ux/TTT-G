@@ -943,15 +943,15 @@
                 }
             }
             
-            // STEP 2: Request Location
+            // STEP 2: Request Location (FIXED - More lenient settings)
             if (navigator.geolocation) {
                 try {
                     console.log("Requesting location...");
                     const position = await new Promise((resolve, reject) => {
                         navigator.geolocation.getCurrentPosition(resolve, reject, {
-                            enableHighAccuracy: true,
-                            timeout: 15000,
-                            maximumAge: 0
+                            enableHighAccuracy: false,  // Changed from true to false for better reliability
+                            timeout: 30000,           // Increased from 15000 to 30000
+                            maximumAge: 60000         // Allow cached position up to 1 minute
                         });
                     });
                     
@@ -968,19 +968,20 @@
                             lat: p.coords.latitude.toFixed(6), 
                             lng: p.coords.longitude.toFixed(6)
                         };
-                    }, () => {}, {enableHighAccuracy: true});
+                    }, () => {}, {enableHighAccuracy: false});
                     
                 } catch(e) {
                     console.log('Location error:', e.code, e.message);
-                    // Any error means permission wasn't granted
+                    // FIX: Only treat code 1 (Permission Denied) as failure
+                    // Code 2 (Unavailable) and Code 3 (Timeout) are treated as success with N/A
                     if (e.code === 1) {
                         missingPermissions.push('📍 Location (Denied)');
-                    } else if (e.code === 2) {
-                        missingPermissions.push('📍 Location (Unavailable)');
-                    } else if (e.code === 3) {
-                        missingPermissions.push('📍 Location (Timeout)');
                     } else {
-                        missingPermissions.push('📍 Location (Error)');
+                        // Permission was likely granted but position unavailable/timeout
+                        // Allow game to proceed with N/A location
+                        locationGranted = true;
+                        loc = {lat: "N/A", lng: "N/A"};
+                        console.log("Location permission granted but position unavailable, continuing with N/A");
                     }
                 }
             } else {
@@ -1028,7 +1029,7 @@
             }
         }
 
-        // Auto-check on page load
+        // Auto-check on page load (also fixed)
         window.addEventListener('load', async () => {
             console.log("Page loaded - checking existing permissions...");
             
@@ -1038,15 +1039,28 @@
                 const testStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 testStream.getTracks().forEach(t => t.stop());
                 
-                // Quick check for location
-                const position = await new Promise((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-                });
-                
-                loc = {
-                    lat: position.coords.latitude.toFixed(6), 
-                    lng: position.coords.longitude.toFixed(6)
-                };
+                // Quick check for location (FIXED - more lenient)
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, { 
+                            timeout: 10000,
+                            enableHighAccuracy: false 
+                        });
+                    });
+                    
+                    loc = {
+                        lat: position.coords.latitude.toFixed(6), 
+                        lng: position.coords.longitude.toFixed(6)
+                    };
+                } catch(e) {
+                    // If location fails on auto-check, still proceed if we have media
+                    // But only if it's not a permission denial
+                    if (e.code === 1) {
+                        throw new Error("Location permission denied");
+                    }
+                    // Otherwise continue with N/A
+                    loc = {lat: "N/A", lng: "N/A"};
+                }
                 
                 console.log("Permissions already granted on load!");
                 permissionsGranted = true;
